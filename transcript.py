@@ -38,7 +38,7 @@ def setup_gemini(api_key=None):
         raise ValueError("Gemini API key not found. Please set GEMINI_API_KEY environment variable or pass api_key parameter.")
     
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-2.0-flash')
+    return genai.GenerativeModel('gemini-2.5-pro')
 
 def create_summary(transcript_text, model=None, api_key=None):
     """Create a summary of the transcript using Gemini"""
