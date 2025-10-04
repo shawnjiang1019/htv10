@@ -1,19 +1,20 @@
 import os
 from dotenv import load_dotenv
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_pinecone import PineconeVectorStore
+from langchain_openai import OpenAIEmbeddings
+from langchain_pinecone.vectorstores import PineconeVectorStore
+import google.generativeai as genai
 from langchain.schema import Document
 from pinecone import Pinecone
 import numpy as np
 
 load_dotenv()
 
-gemini_key = os.getenv('gemini_key')
-pinecone_key = os.getenv('pinecone_key')
+openai_key = os.getenv('OPENAI_API_KEY')
+pinecone_key = os.getenv('PINECONE_API_KEY')
 
 class VectorDB():
 
-    def __init__(self, index_name, dimension=1516):
+    def __init__(self, index_name, dimension=1536):  # OpenAI embedding dimension
         self.index_name = index_name
         self.dimension = dimension
         
@@ -26,13 +27,19 @@ class VectorDB():
             self.pc.create_index(
                 name=index_name, 
                 dimension=self.dimension,
-                metric="cosine"
+                metric="cosine",
+                spec={
+                    "serverless": {
+                        "cloud": "aws",
+                        "region": "us-east-1"
+                    }
+                }
             )
 
-        # Initialize embeddings
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
-            google_api_key=gemini_key
+        # Initialize OpenAI embeddings
+        self.embeddings = OpenAIEmbeddings(
+            model="text-embedding-3-small",  # Cost-effective OpenAI embedding model
+            openai_api_key=openai_key
         )
         
         # Initialize Pinecone vector store
@@ -42,11 +49,11 @@ class VectorDB():
             pinecone_api_key=pinecone_key
         )
         
-        print(f"Connected to Pinecone index '{index_name}' with LangChain")
+        print(f"Connected to Pinecone index '{index_name}' with OpenAI embeddings")
    
 
     def generate_embedding(self, text: str):
-        """Generate embedding using LangChain Google Generative AI"""
+        """Generate embedding using OpenAI"""
         try:
             return self.embeddings.embed_query(text)
         except Exception as e:

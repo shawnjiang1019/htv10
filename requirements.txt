@@ -1,0 +1,17 @@
+langchain
+langchain-core
+langchain-google-genai
+langchain-openai
+langchain-pinecone
+langchain-community
+langgraph
+python-dotenv==1.0.1
+numpy==1.26.4
+fastapi==0.118.0
+fastapi-cli==0.0.13
+fastapi-cloud-cli==0.3.0
+google-generativeai==0.8.3
+pinecone
+tavily-python
+elevenlabs
+pygame
