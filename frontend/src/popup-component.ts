@@ -1,6 +1,6 @@
 // Popup Component for YouTube Transcript AI Extension
 
-import transcriptApi from "./api/api"
+import transcriptApi, { type CombinedData } from "./api/api"
 // Dummy data - easy to update later
 
 // interface link {
@@ -9,15 +9,6 @@ import transcriptApi from "./api/api"
 //   source: string,
 //   description: string
 // }
-
-type CombinedData = {
-    summary?: string;
-    bias_analysis: {
-      bias_score?: number;
-      view_point?: string;
-      sentences?: string[];
-    };
-  };
 
 
 const DUMMY_DATA = {
