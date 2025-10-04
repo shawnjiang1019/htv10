@@ -45,6 +45,29 @@ def setup_gemini(api_key=None):
     genai.configure(api_key=api_key)
     return genai.GenerativeModel('gemini-2.5-pro')
 
+def create_summary(transcript_text, model=None, api_key=None):
+    """Create a summary of the transcript using Gemini"""
+    if model is None:
+        model = setup_gemini(api_key)
+    
+    prompt = f"""
+    Please provide a comprehensive summary of the following YouTube video transcript. 
+    Include the main topics discussed, key points, and any important insights or conclusions.
+    
+    Transcript:
+    {transcript_text}
+    
+    Summary:
+    """
+    
+    try:
+        print("\nGenerating summary with Gemini...")
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        print(f"Error generating summary: {e}")
+        return None
+
 
 def get_metadata(video_id): 
     ydl_opts = {}
@@ -64,8 +87,27 @@ def get_transcript(video_id, languages=['en']):
         return ' '.join([snippet['text'] for snippet in transcript_obj.to_raw_data()])
 
     transcript_obj.raw_text = get_raw_text(transcript_obj)
-    transcript_obj.sentences = transcript_obj.sentences = split_by_punctuation(transcript_obj.raw_text)
+    transcript_obj.sentences = split_by_punctuation(transcript_obj.raw_text)
     print(f'Converted to raw text: added to attribute .raw_text')
+    
+    # Generate summary using Gemini
+    try:
+        summary = create_summary(transcript_obj.raw_text)
+        transcript_obj.summary = summary
+        print(f'Generated summary with Gemini')
+    except Exception as e:
+        print(f'Error generating summary: {e}')
+        transcript_obj.summary = None
+    
+    # Get video metadata
+    try:
+        metadata = get_metadata(video_id)
+        transcript_obj.metadata = metadata
+        print(f'Retrieved video metadata')
+    except Exception as e:
+        print(f'Error getting metadata: {e}')
+        transcript_obj.metadata = None
+    
     print(transcript_obj)
     return transcript_obj
 
@@ -79,4 +121,14 @@ def getTranscript(video_id: str):
     # classify the text to see if it is biased or not
 
     payload: video_transcription = None
-    return transcript.sentences
+    
+    # Return comprehensive response
+    response = {
+        "video_id": video_id,
+        "sentences": transcript.sentences,
+        "raw_text": transcript.raw_text,
+        "summary": transcript.summary,
+        "metadata": transcript.metadata
+    }
+    
+    return response
