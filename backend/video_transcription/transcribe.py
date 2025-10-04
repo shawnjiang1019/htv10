@@ -43,7 +43,7 @@ def setup_gemini(api_key=None):
         raise ValueError("Gemini API key not found. Please set GEMINI_API_KEY environment variable or pass api_key parameter.")
     
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-2.0-flash')
+    return genai.GenerativeModel('gemini-2.5-pro')
 
 
 def get_metadata(video_id): 
@@ -80,6 +80,3 @@ def getTranscript(video_id: str):
 
     payload: video_transcription = None
     return transcript.sentences
-
-
-    
