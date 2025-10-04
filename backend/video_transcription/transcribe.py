@@ -16,6 +16,20 @@ router = APIRouter()
 
 load_dotenv()
 
+
+class Link(BaseModel):
+    title: str
+    url: str
+    source: str
+    description: str
+
+class Article_Summary(BaseModel):
+    summary: str
+    alternatelinks: list[Link]
+    
+
+
+
 class video_transcription(BaseModel):
     view: str
     args: list[str]
@@ -63,6 +77,34 @@ def create_summary(transcript_text, model=None, api_key=None):
     try:
         print("\nGenerating summary with Gemini...")
         response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        print(f"Error generating summary: {e}")
+        return None
+
+def get_bias(transcript_text, model=None, api_key=None,):
+    """Get bias of the article and find specific sentences"""
+    if model is None:
+        model = setup_gemini("AIzaSyDGp3xJiFDvgKtFrn9DAjzxV6glb5qu4eM")
+    prompt = f"""
+    If the provided transcript is biased find the sentences that are the most biased towards the  
+    view point of the transcript, keep it concise, if the transcript is neutral then do not give any sentences. 
+    Also give a numeric score for the bias between 0 and 1. Also give the view point of the transcript.
+    Give the data in this json format. YOU MUST GIVE THE OUTPUT IN JSON FORMAT AND NOTHING ELSE: 
+    {{
+        'sentences': []
+        'bias_score': 0.0
+        'view point': ""
+    }}
+    transcript:
+    {transcript_text}
+    """
+    try:
+        print("\nGenerating summary with Gemini...")
+        response = model.generate_content(contents=prompt, config={
+            "response_mime_type": "application/json",
+            "response_schema": list[Article_Summary]
+        })
         return response.text
     except Exception as e:
         print(f"Error generating summary: {e}")
@@ -132,3 +174,33 @@ def getTranscript(video_id: str):
     }
     
     return response
+
+
+@router.get("/analyze-bias")
+def analyzeBias(video_id: str):
+    """
+    Analyze bias in a video transcript towards a specific viewpoint
+    """
+    try:
+        # Get the transcript first
+        transcript = get_transcript(video_id=video_id)
+        
+        # Analyze bias using the get_bias function
+        bias_analysis = get_bias(
+            transcript_text=transcript.raw_text,
+        )
+        
+        # Return comprehensive response
+        # response = {
+        #     "video_id": video_id,
+        #     "bias_analysis": bias_analysis
+        # }
+        
+        # return response
+        return bias_analysis
+        
+    except Exception as e:
+        return {
+            "error": f"Error analyzing bias: {str(e)}",
+            "video_id": video_id,
+        }
