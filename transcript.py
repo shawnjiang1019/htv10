@@ -15,13 +15,6 @@ def get_metadata(video_id):
         info = ydl.extract_info(url, download=False)
     return info
 
-def get_metadata(video_id): 
-    ydl_opts = {}
-    url = f"https://www.youtube.com/watch?v={video_id}"
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-    return info
-
 def get_transcript(video_id, languages=['en']):
 
     print(f'Getting transcript for id ${video_id}')
