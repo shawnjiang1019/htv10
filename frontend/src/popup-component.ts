@@ -1,6 +1,6 @@
 // Popup Component for YouTube Transcript AI Extension
 
-import transcriptApi, { type CombinedData } from "./api/api"
+import youtubeApi, { type CombinedData } from "./api/youtube-api"
 // Dummy data - easy to update later
 
 // interface link {
@@ -80,7 +80,7 @@ export async function createTranscriptPopup(videoId: string): Promise<HTMLElemen
 
   try {
     // Fetch real data from API
-    const data = await transcriptApi.getFullAnalysis(videoId);
+    const data = await youtubeApi.getFullAnalysis(videoId);
     updatePopupWithData(popup, data, videoId);
   } catch (error) {
     console.error('Failed to load data, using dummy data:', error);
