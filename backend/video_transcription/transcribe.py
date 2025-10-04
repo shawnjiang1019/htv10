@@ -82,10 +82,10 @@ def create_summary(transcript_text, model=None, api_key=None):
         print(f"Error generating summary: {e}")
         return None
 
-def get_bias(transcript_text, model=None, api_key=None,):
+def get_bias(transcript_text, model=None, api_key=None):
     """Get bias of the article and find specific sentences"""
     if model is None:
-        model = setup_gemini("AIzaSyDGp3xJiFDvgKtFrn9DAjzxV6glb5qu4eM")
+        model = setup_gemini(api_key)
     prompt = f"""
     If the provided transcript is biased find the sentences that are the most biased towards the  
     view point of the transcript, keep it concise, if the transcript is neutral then do not give any sentences. 
