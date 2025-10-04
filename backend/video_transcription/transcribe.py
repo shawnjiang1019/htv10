@@ -1,0 +1,85 @@
+import sys
+import os
+import yt_dlp
+from youtube_transcript_api import YouTubeTranscriptApi
+import google.generativeai as genai
+from dotenv import load_dotenv
+import re
+
+
+
+
+from fastapi import APIRouter
+from pydantic import BaseModel, ConfigDict
+
+router = APIRouter()
+
+load_dotenv()
+
+class video_transcription(BaseModel):
+    view: str
+    args: list[str]
+    op_view: str
+    bias: float
+    video_url: int
+
+
+def split_by_punctuation(text: str) -> list[str]:
+    """
+    Split a string into a list of strings based on punctuation marks.
+    Removes empty strings from the result.
+    """
+    # Split by common punctuation marks: . ! ? ; :
+    sentences = re.split(r'[.!?:]+', text)
+    # Remove empty strings and strip whitespace
+    return [sentence.strip() for sentence in sentences if sentence.strip()]
+
+def setup_gemini(api_key=None):
+    """Setup Gemini API with API key from environment or parameter"""
+    if api_key is None:
+        api_key = os.getenv('GEMINI_API_KEY')
+    
+    if not api_key:
+        raise ValueError("Gemini API key not found. Please set GEMINI_API_KEY environment variable or pass api_key parameter.")
+    
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel('gemini-2.0-flash')
+
+
+def get_metadata(video_id): 
+    ydl_opts = {}
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+    return info
+
+def get_transcript(video_id, languages=['en']):
+    
+    print(f'Getting transcript for id ${video_id}')
+    ytt_api = YouTubeTranscriptApi()
+    transcript_obj = ytt_api.fetch(video_id, languages=languages)
+    print(f'Transcript acquired for id ${video_id}')
+
+    def get_raw_text(transcript_obj):
+        return ' '.join([snippet['text'] for snippet in transcript_obj.to_raw_data()])
+
+    transcript_obj.raw_text = get_raw_text(transcript_obj)
+    transcript_obj.sentences = transcript_obj.sentences = split_by_punctuation(transcript_obj.raw_text)
+    print(f'Converted to raw text: added to attribute .raw_text')
+    print(transcript_obj)
+    return transcript_obj
+
+
+
+
+@router.get("/get-transcript")
+def getTranscript(video_id: str):
+    transcript = get_transcript(video_id=video_id)
+    
+    # classify the text to see if it is biased or not
+
+    payload: video_transcription = None
+    return transcript.sentences
+
+
+    
