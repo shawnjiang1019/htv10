@@ -2,32 +2,55 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import { Input } from './components/ui/input'
+import { Button } from "@/components/ui/button"
+import Debate from './debate'
+
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
+  const [prompt, setPrompt] = useState<string>("");
+
+
+  const handleButtonClick = () => {
+    if (!prompt || prompt.trim() === "") {
+      alert("Please enter something first!");
+      return;
+    }
+
+    else{
+      // handle API
+      console.log(prompt);
+    }
+
+  }
+
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
+     <div className="m-0 p-0 w-full min-h-screen">
+      <div className="sticky top-0 z-50 bg-white p-4 border-b border-gray-200 shadow-sm w-full m-0">
+        <p className="mb-4 mt-0">
+          Enter in a topic on your mind, our AI agents will use your scanned articles and videos to give you nothing but the facts.
         </p>
+        <div className="flex w-full max-w-sm items-center gap-2">
+          <Input 
+            type="text" 
+            placeholder="Whats on your mind?" 
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={handleButtonClick}
+          >
+            Enter
+          </Button>
+        </div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Debate />
+      </div>
     </>
   )
 }
