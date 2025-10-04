@@ -1,5 +1,6 @@
 import sys
 import os
+import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -7,7 +8,22 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+def get_metadata(video_id): 
+    ydl_opts = {}
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+    return info
+
+def get_metadata(video_id): 
+    ydl_opts = {}
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+    return info
+
 def get_transcript(video_id, languages=['en']):
+
     print(f'Getting transcript for id ${video_id}')
     ytt_api = YouTubeTranscriptApi()
     transcript_obj = ytt_api.fetch(video_id, languages=languages)
@@ -18,7 +34,6 @@ def get_transcript(video_id, languages=['en']):
 
     transcript_obj.raw_text = get_raw_text(transcript_obj)
     print(f'Converted to raw text: added to attribute .raw_text')
-
     return transcript_obj
 
 def setup_gemini(api_key=None):
@@ -55,6 +70,7 @@ def create_summary(transcript_text, model=None, api_key=None):
         print(f"Error generating summary: {e}")
         return None
 
+
 if __name__ == '__main__':
     id = 'eJENP0Rr8p0'
     if len(sys.argv) > 1:
@@ -79,3 +95,5 @@ if __name__ == '__main__':
         print("You can get an API key from: https://makersuite.google.com/app/apikey")
     except Exception as e:
         print(f"\nUnexpected error: {e}")
+    m = get_metadata(id)
+    print(m)
