@@ -1,7 +1,16 @@
 import sys
+import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
 
+def get_metadata(video_id): 
+    ydl_opts = {}
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+    return info
+
 def get_transcript(video_id, languages=['en']):
+
     print(f'Getting transcript for id ${video_id}')
     ytt_api = YouTubeTranscriptApi()
     transcript_obj = ytt_api.fetch(video_id, languages=languages)
@@ -12,8 +21,8 @@ def get_transcript(video_id, languages=['en']):
 
     transcript_obj.raw_text = get_raw_text(transcript_obj)
     print(f'Converted to raw text: added to attribute .raw_text')
-
     return transcript_obj
+
 
 if __name__ == '__main__':
     id = 'eJENP0Rr8p0'
@@ -21,3 +30,5 @@ if __name__ == '__main__':
         id = sys.argv[1]
     z = get_transcript(id)
     print(z.raw_text)
+    m = get_metadata(id)
+    print(m)
