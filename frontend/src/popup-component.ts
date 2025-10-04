@@ -3,13 +3,21 @@
 import transcriptApi from "./api/api"
 // Dummy data - easy to update later
 
-interface link {
-  summary: string,
-  url: string,
-  source: string,
-  description: string
-}
+// interface link {
+//   summary: string,
+//   url: string,
+//   source: string,
+//   description: string
+// }
 
+type CombinedData = {
+    summary?: string;
+    bias_analysis: {
+      bias_score?: number;
+      view_point?: string;
+      sentences?: string[];
+    };
+  };
 
 
 const DUMMY_DATA = {
@@ -70,7 +78,7 @@ function showLoadingState(popup: HTMLElement): void {
   `;
 }
 
-export async function createTranscriptPopup(videoId: string): HTMLElement {
+export async function createTranscriptPopup(videoId: string): Promise<HTMLElement> {
   //const biasInfo = getBiasLevel(DUMMY_DATA.biasScore);
 
   const popup = document.createElement("div");
@@ -93,8 +101,8 @@ export async function createTranscriptPopup(videoId: string): HTMLElement {
 }
 
 function updatePopupWithData(popup: HTMLElement, data: CombinedData, videoId: string): void {
-  const biasInfo = getBiasLevel(data.bias_analysis.bias_score || 0);
-  
+  const biasInfo = getBiasLevel(data.bias_analysis?.bias_score ?? 0);
+
   popup.innerHTML = `
     <div class="yt-transcript-header">
       <div class="yt-transcript-title">
@@ -127,12 +135,12 @@ function updatePopupWithData(popup: HTMLElement, data: CombinedData, videoId: st
         </div>
         <div class="yt-transcript-bias-details">
           <p><strong>View Point:</strong> ${data.bias_analysis.view_point || 'None detected'}</p>
-          ${data.bias_analysis.sentences?.length > 0 ? `
-            <p><strong>Biased Sentences:</strong></p>
-            <ul>
-              ${data.bias_analysis.sentences.map(sentence => `<li>${sentence}</li>`).join('')}
-            </ul>
-          ` : '<p>No biased sentences detected</p>'}
+           ${data.bias_analysis.sentences && data.bias_analysis.sentences.length > 0 ? `
+             <p><strong>Biased Sentences:</strong></p>
+             <ul>
+               ${data.bias_analysis.sentences.map(sentence => `<li>${sentence}</li>`).join('')}
+             </ul>
+           ` : '<p>No biased sentences detected</p>'}
         </div>
       </div>
 
@@ -148,7 +156,6 @@ function updatePopupWithData(popup: HTMLElement, data: CombinedData, videoId: st
 function updatePopupWithDummyData(popup: HTMLElement, videoId: string): void {
   const biasInfo = getBiasLevel(DUMMY_DATA.biasScore);
   
-  // Your existing popup HTML code here...
   popup.innerHTML = `
     <div class="yt-transcript-header">
       <div class="yt-transcript-title">
@@ -158,8 +165,53 @@ function updatePopupWithDummyData(popup: HTMLElement, videoId: string): void {
     </div>
     
     <div class="yt-transcript-content">
-      <!-- Your existing dummy data template -->
-      <!-- ... rest of your existing code ... -->
+      <!-- Summary Section -->
+      <div class="yt-transcript-section">
+        <div class="yt-transcript-section-header">
+          <h4>📋 Summary</h4>
+          <div class="yt-transcript-bias-indicator">
+            <span class="yt-transcript-bias-label">Bias Level:</span>
+            <span class="yt-transcript-bias-score" style="color: ${biasInfo.color}">
+              ${biasInfo.level}
+            </span>
+            <div class="yt-transcript-confidence">
+              Confidence: ${Math.round(DUMMY_DATA.confidence * 100)}%
+            </div>
+          </div>
+        </div>
+        <div class="yt-transcript-summary">
+          ${DUMMY_DATA.summary}
+        </div>
+      </div>
+
+      <!-- Alternate Links Section -->
+      <div class="yt-transcript-section">
+        <div class="yt-transcript-section-header">
+          <h4>🔗 Unbiased Resources</h4>
+          <span class="yt-transcript-link-count">${DUMMY_DATA.alternateLinks.length} sources</span>
+        </div>
+        <div class="yt-transcript-links">
+          ${DUMMY_DATA.alternateLinks.map(link => `
+            <div class="yt-transcript-link-item">
+              <div class="yt-transcript-link-header">
+                <a href="${link.url}" target="_blank" class="yt-transcript-link-title">
+                  ${link.title}
+                </a>
+                <span class="yt-transcript-link-source">${link.source}</span>
+              </div>
+              <div class="yt-transcript-link-description">
+                ${link.description}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="yt-transcript-footer">
+        <div class="yt-transcript-video-id">Video ID: ${videoId}</div>
+        <div class="yt-transcript-powered-by">Powered by AI</div>
+      </div>
     </div>
   `;
 }

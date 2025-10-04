@@ -323,7 +323,7 @@ async function injectPopup() {
   const videoId = urlParams.get("v") || "unknown";
 
   // Create popup using component
-  const transcriptPopup = createTranscriptPopup(videoId);
+  const transcriptPopup = await createTranscriptPopup(videoId);
 
   try {
     const secondary = await waitForElement<HTMLElement>("#secondary");
