@@ -1,26 +1,26 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   build: {
+    outDir: 'dist',
     rollupOptions: {
       input: {
-        popup: resolve(__dirname, 'index.html'),
-        content: resolve(__dirname, 'src/content.ts')
+        // Main popup
+        popup: resolve(__dirname, 'popup.html'),
+        // Content script
+        content: resolve(__dirname, 'src/content.tsx'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
-          return chunkInfo.name === 'content' ? 'content.js' : '[name].js'
-        }
-      }
+          // Keep content script as content.js
+          return chunkInfo.name === 'content' ? 'content.js' : '[name].js';
+        },
+        chunkFileNames: 'chunks/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
     },
-    outDir: 'dist',
-    emptyOutDir: true
   },
-  define: {
-    'process.env.NODE_ENV': '"production"'
-  }
-})
+});
