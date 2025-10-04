@@ -4,12 +4,12 @@ import { createTranscriptPopup, setupPopupEventListeners } from './popup-compone
 // Get CSS styles for the extension
 function getExtensionStyles(): string {
   return `
-    /* YouTube Transcript AI Extension Styles */
+    /* YouTube Transcript AI Extension Styles - Dark Theme */
     .yt-transcript-popup {
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
+      background: #1f2937;
+      border: 1px solid #374151;
       border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
       line-height: 1.5;
@@ -27,6 +27,7 @@ function getExtensionStyles(): string {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       padding: 0;
+      border-bottom: 1px solid #475569;
     }
 
     .yt-transcript-title {
@@ -62,7 +63,8 @@ function getExtensionStyles(): string {
     }
 
     .yt-transcript-close:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(148, 163, 184, 0.3);
+      color: #f1f5f9;
     }
 
     /* Content */
@@ -74,7 +76,7 @@ function getExtensionStyles(): string {
 
     /* Sections */
     .yt-transcript-section {
-      border-bottom: 1px solid #f3f4f6;
+      border-bottom: 1px solid #374151;
       padding: 20px;
     }
 
@@ -93,7 +95,7 @@ function getExtensionStyles(): string {
       margin: 0;
       font-size: 16px;
       font-weight: 600;
-      color: #1f2937;
+      color: #f9fafb;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -109,7 +111,7 @@ function getExtensionStyles(): string {
 
     .yt-transcript-bias-label {
       font-size: 12px;
-      color: #6b7280;
+      color: #9ca3af;
       font-weight: 500;
     }
 
@@ -118,29 +120,29 @@ function getExtensionStyles(): string {
       font-weight: 600;
       padding: 2px 8px;
       border-radius: 12px;
-      background: rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .yt-transcript-confidence {
       font-size: 11px;
-      color: #6b7280;
+      color: #9ca3af;
     }
 
     /* Summary */
     .yt-transcript-summary {
-      background: #f8fafc;
+      background: #374151;
       padding: 16px;
       border-radius: 8px;
-      border-left: 4px solid #3b82f6;
-      color: #374151;
+      border-left: 4px solid #60a5fa;
+      color: #e5e7eb;
       line-height: 1.6;
     }
 
     /* Links */
     .yt-transcript-link-count {
       font-size: 12px;
-      color: #6b7280;
-      background: #f3f4f6;
+      color: #9ca3af;
+      background: #374151;
       padding: 4px 8px;
       border-radius: 12px;
       font-weight: 500;
@@ -153,8 +155,8 @@ function getExtensionStyles(): string {
     }
 
     .yt-transcript-link-item {
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
+      background: #374151;
+      border: 1px solid #4b5563;
       border-radius: 8px;
       padding: 16px;
       transition: all 0.2s ease;
@@ -162,8 +164,8 @@ function getExtensionStyles(): string {
     }
 
     .yt-transcript-link-item:hover {
-      border-color: #3b82f6;
-      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+      border-color: #60a5fa;
+      box-shadow: 0 2px 8px rgba(96, 165, 250, 0.2);
       transform: translateY(-1px);
     }
 
@@ -176,7 +178,7 @@ function getExtensionStyles(): string {
     }
 
     .yt-transcript-link-title {
-      color: #1f2937;
+      color: #f9fafb;
       text-decoration: none;
       font-weight: 600;
       font-size: 14px;
@@ -186,13 +188,13 @@ function getExtensionStyles(): string {
     }
 
     .yt-transcript-link-title:hover {
-      color: #3b82f6;
+      color: #60a5fa;
     }
 
     .yt-transcript-link-source {
       font-size: 12px;
-      color: #6b7280;
-      background: #f3f4f6;
+      color: #9ca3af;
+      background: #4b5563;
       padding: 2px 8px;
       border-radius: 12px;
       white-space: nowrap;
@@ -200,30 +202,30 @@ function getExtensionStyles(): string {
     }
 
     .yt-transcript-link-description {
-      color: #6b7280;
+      color: #9ca3af;
       font-size: 13px;
       line-height: 1.4;
     }
 
     /* Footer */
     .yt-transcript-footer {
-      background: #f8fafc;
+      background: #374151;
       padding: 12px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px solid #e5e7eb;
+      border-top: 1px solid #4b5563;
     }
 
     .yt-transcript-video-id {
       font-size: 12px;
-      color: #6b7280;
+      color: #9ca3af;
       font-family: 'Monaco', 'Menlo', monospace;
     }
 
     .yt-transcript-powered-by {
       font-size: 12px;
-      color: #9ca3af;
+      color: #6b7280;
       font-style: italic;
     }
 
@@ -233,16 +235,16 @@ function getExtensionStyles(): string {
     }
 
     .yt-transcript-content::-webkit-scrollbar-track {
-      background: #f1f5f9;
+      background: #374151;
     }
 
     .yt-transcript-content::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
+      background: #6b7280;
       border-radius: 3px;
     }
 
     .yt-transcript-content::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
+      background: #9ca3af;
     }
 
     /* Responsive Design */
