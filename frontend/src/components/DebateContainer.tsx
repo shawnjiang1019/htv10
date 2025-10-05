@@ -19,10 +19,14 @@ interface StreamMessage {
   timestamp?: string;
   claim?: string;
   total_exchanges?: number;
+  show_text?: boolean;
+  play_audio?: boolean;
   conversation_history?: Array<{
     speaker: string;
     response: string;
     round: number;
+    show_text?: boolean;
+    play_audio?: boolean;
   }>;
 }
 
@@ -35,6 +39,69 @@ export const DebateContainer = () => {
   const [error, setError] = useState<string | null>(null);
   const [debateCompleted, setDebateCompleted] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [debateMode, setDebateMode] = useState<string>("both");
+  const [includeAudio, setIncludeAudio] = useState<boolean>(false);
+  const [proVoice, setProVoice] = useState<string>("Rachel");
+  const [conVoice, setConVoice] = useState<string>("Adam");
+  const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
+
+  // Audio control functions
+  const stopAudio = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/debate/audio/stop', {
+        method: 'POST',
+      });
+      const result = await response.json();
+      if (result.success) {
+        setAudioPlaying(false);
+      }
+    } catch (error) {
+      console.error('Error stopping audio:', error);
+    }
+  };
+
+  const pauseAudio = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/debate/audio/pause', {
+        method: 'POST',
+      });
+      const result = await response.json();
+      if (result.success) {
+        setAudioPlaying(false);
+      }
+    } catch (error) {
+      console.error('Error pausing audio:', error);
+    }
+  };
+
+  const resumeAudio = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/debate/audio/resume', {
+        method: 'POST',
+      });
+      const result = await response.json();
+      if (result.success) {
+        setAudioPlaying(true);
+      }
+    } catch (error) {
+      console.error('Error resuming audio:', error);
+    }
+  };
+
+  const testConnection = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/debate/audio/test-connection');
+      const result = await response.json();
+      if (result.success) {
+        alert('✅ ElevenLabs connection successful!');
+      } else {
+        alert('❌ ElevenLabs connection failed: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error testing connection:', error);
+      alert('❌ Error testing connection: ' + error);
+    }
+  };
 
 
   // Stream message handler
@@ -138,9 +205,10 @@ export const DebateContainer = () => {
         body: JSON.stringify({
           claim: prompt,
           max_rounds: 4,
-          include_audio: false,
-          pro_voice: "Rachel",
-          con_voice: "Adam"
+          include_audio: includeAudio,
+          pro_voice: proVoice,
+          con_voice: conVoice,
+          debate_mode: debateMode
         })
       });
 
@@ -219,8 +287,21 @@ export const DebateContainer = () => {
         debateCompleted={debateCompleted}
         error={error}
         messagesCount={messages.length}
+        debateMode={debateMode}
+        setDebateMode={setDebateMode}
+        includeAudio={includeAudio}
+        setIncludeAudio={setIncludeAudio}
+        proVoice={proVoice}
+        setProVoice={setProVoice}
+        conVoice={conVoice}
+        setConVoice={setConVoice}
+        audioPlaying={audioPlaying}
         onStartDebate={startDebateWithStreaming}
         onResetDebate={resetDebate}
+        onStopAudio={stopAudio}
+        onPauseAudio={pauseAudio}
+        onResumeAudio={resumeAudio}
+        onTestConnection={testConnection}
       />
      
       <MessageDisplay

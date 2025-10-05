@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 import json
 import asyncio
 from .debate_service import debate_service
-from .elevens_labs import stop_audio, pause_audio, resume_audio
+from .elevens_labs import stop_audio, pause_audio, resume_audio, is_audio_playing, get_available_voices, test_voice_connection
 
 
 router = APIRouter()
@@ -17,6 +17,7 @@ class DebateRequest(BaseModel):
     include_audio: bool = False
     pro_voice: str = "Rachel"
     con_voice: str = "Adam"
+    debate_mode: str = "both"  # "text_only", "both"
 class DebateResponse(BaseModel):
     claim: str
     total_exchanges: int
@@ -34,7 +35,8 @@ async def run_debate(request: DebateRequest):
             max_rounds=request.max_rounds,
             include_audio=request.include_audio,
             pro_voice=request.pro_voice,
-            con_voice=request.con_voice
+            con_voice=request.con_voice,
+            debate_mode=request.debate_mode
         )
 
 
@@ -76,7 +78,45 @@ async def resume_audio_playback():
         resume_audio()
         return {"message": "Audio resumed successfully", "success": True}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))    
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/audio/status")
+async def get_audio_status():
+    """Get current audio playback status"""
+    try:
+        is_playing = is_audio_playing()
+        return {
+            "is_playing": is_playing,
+            "message": "Audio is playing" if is_playing else "Audio is not playing",
+            "success": True
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/audio/voices")
+async def get_voices():
+    """Get available voices from ElevenLabs"""
+    try:
+        voices = get_available_voices()
+        return {
+            "voices": voices,
+            "success": True
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/audio/test-connection")
+async def test_connection():
+    """Test ElevenLabs API connection"""
+    try:
+        success = test_voice_connection()
+        return {
+            "connected": success,
+            "message": "Connection successful" if success else "Connection failed - check API key",
+            "success": success
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/run-stream")
@@ -94,7 +134,8 @@ async def run_debate_stream(request: DebateRequest):
                 max_rounds=request.max_rounds,
                 include_audio=request.include_audio,
                 pro_voice=request.pro_voice,
-                con_voice=request.con_voice
+                con_voice=request.con_voice,
+                debate_mode=request.debate_mode
             ):
                 yield f"data: {json.dumps(message)}\n\n"
                 # Small delay to prevent overwhelming the client
@@ -138,7 +179,8 @@ async def run_debate_websocket(websocket: WebSocket):
             max_rounds=request.max_rounds,
             include_audio=request.include_audio,
             pro_voice=request.pro_voice,
-            con_voice=request.con_voice
+            con_voice=request.con_voice,
+            debate_mode=request.debate_mode
         ):
             await websocket.send_json(message)
        

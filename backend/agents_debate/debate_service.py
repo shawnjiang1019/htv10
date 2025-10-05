@@ -24,6 +24,7 @@ class State(TypedDict):
     include_audio: bool
     pro_voice: str
     con_voice: str
+    debate_mode: str  # "text_only", "both"
 
 class RAGDebateAgent:
 
@@ -167,11 +168,26 @@ class DebateService:
         except Exception as e:
             print(f"❌ Error playing audio for {voice_name}: {e}")
 
+    def _should_play_audio(self, state: State) -> bool:
+        """Determine if audio should be played based on debate mode"""
+        debate_mode = state.get("debate_mode", "both")
+        include_audio = state.get("include_audio", False)
+        
+        if not include_audio:
+            return False
+            
+        return debate_mode == "both"
+
+    def _should_show_text(self, state: State) -> bool:
+        """Determine if text should be shown based on debate mode"""
+        debate_mode = state.get("debate_mode", "both")
+        return debate_mode in ["text_only", "both"]
+
     def _pro_agent_node(self, state):
         response = self.pro_agent.generate_debate_response(state)
         
-        # Play audio if enabled
-        if state.get("include_audio", False):
+        # Play audio if enabled based on debate mode
+        if self._should_play_audio(state):
             voice_name = state.get("pro_voice", "Rachel")
             self._play_agent_audio(response, voice_name)
         
@@ -179,7 +195,9 @@ class DebateService:
         new_entry = {
             "speaker": "Proponent",
             "response": response,
-            "round": state["round_number"]
+            "round": state["round_number"],
+            "show_text": self._should_show_text(state),
+            "play_audio": self._should_play_audio(state)
         }
 
         updated_history = state["conversation_history"] + [new_entry]
@@ -192,8 +210,8 @@ class DebateService:
     def _con_agent_node(self, state):
         response = self.con_agent.generate_debate_response(state)
         
-        # Play audio if enabled
-        if state.get("include_audio", False):
+        # Play audio if enabled based on debate mode
+        if self._should_play_audio(state):
             voice_name = state.get("con_voice", "Adam")
             self._play_agent_audio(response, voice_name)
         
@@ -201,7 +219,9 @@ class DebateService:
         new_entry = {
             "speaker": "Conponent",
             "response": response,
-            "round": state["round_number"]
+            "round": state["round_number"],
+            "show_text": self._should_show_text(state),
+            "play_audio": self._should_play_audio(state)
         }
 
         updated_history = state["conversation_history"] + [new_entry]
@@ -221,7 +241,7 @@ class DebateService:
             return "con_agent"    
 
     def run_debate(self, claim: str, max_rounds: int = 4, include_audio: bool = False, 
-                   pro_voice: str = "Rachel", con_voice: str = "Adam"):
+                   pro_voice: str = "Rachel", con_voice: str = "Adam", debate_mode: str = "both"):
         """Run a debate with the given claim"""
         initial_state = {
             "claim": claim,
@@ -230,7 +250,8 @@ class DebateService:
             "conversation_history": [],
             "include_audio": include_audio,
             "pro_voice": pro_voice,
-            "con_voice": con_voice
+            "con_voice": con_voice,
+            "debate_mode": debate_mode
         }
         
         try:
@@ -241,7 +262,7 @@ class DebateService:
         
     
     async def run_debate_stream(self, claim: str, max_rounds: int = 4, include_audio: bool = False, 
-                           pro_voice: str = "Rachel", con_voice: str = "Adam"):
+                           pro_voice: str = "Rachel", con_voice: str = "Adam", debate_mode: str = "both"):
         """Run a debate with streaming responses"""
         initial_state = {
             "claim": claim,
@@ -250,7 +271,8 @@ class DebateService:
             "conversation_history": [],
             "include_audio": include_audio,
             "pro_voice": pro_voice,
-            "con_voice": con_voice
+            "con_voice": con_voice,
+            "debate_mode": debate_mode
         }
         
         current_state = initial_state
@@ -278,7 +300,9 @@ class DebateService:
                 "speaker": agent_type,
                 "message": latest_message["response"],
                 "round": latest_message["round"],
-                "timestamp": str(datetime.now())
+                "timestamp": str(datetime.now()),
+                "show_text": latest_message.get("show_text", True),
+                "play_audio": latest_message.get("play_audio", False)
             }
         
         # Send completion message
