@@ -53,72 +53,75 @@ export const DebateInput = ({
   onTestConnection
 }: DebateInputProps) => {
   return (
-    <div className="sticky top-0 z-50 bg-white p-4 border-b border-gray-200 shadow-sm w-full m-0">
-      <p className="mb-4 mt-0">
-        Enter in a topic on your mind, our AI agents will use your scanned articles and videos to give you multiple perspectives on the topic.
-      </p>
+    <div className="debate-input-container">
+      <div className="debate-header">
+        <h3>🗣️ AI Debate System</h3>
+        <p className="debate-description">
+          Enter a topic on your mind, our AI agents will use your scanned articles and videos to give you multiple perspectives on the topic.
+        </p>
+      </div>
       
       {/* Debate Mode Selection */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Debate Mode:</label>
-        <div className="flex gap-4">
-          <label className="flex items-center">
+      <div className="debate-mode-section">
+        <label className="debate-label">Debate Mode:</label>
+        <div className="radio-group">
+          <label className="radio-option">
             <input
               type="radio"
               value="text_only"
               checked={debateMode === "text_only"}
               onChange={(e) => setDebateMode(e.target.value)}
-              className="mr-2"
+              className="radio-input"
             />
-            Text Only
+            <span className="radio-label">Text Only</span>
           </label>
-          <label className="flex items-center">
+          <label className="radio-option">
             <input
               type="radio"
               value="both"
               checked={debateMode === "both"}
               onChange={(e) => setDebateMode(e.target.value)}
-              className="mr-2"
+              className="radio-input"
             />
-            Both Text & Sound
+            <span className="radio-label">Both Text & Sound</span>
           </label>
         </div>
       </div>
 
       {/* Audio Settings */}
       {debateMode === "both" && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <div className="flex items-center mb-2">
+        <div className="audio-settings">
+          <div className="audio-toggle">
             <input
               type="checkbox"
               checked={includeAudio}
               onChange={(e) => setIncludeAudio(e.target.checked)}
-              className="mr-2"
+              className="checkbox-input"
             />
-            <label className="text-sm font-medium text-gray-700">Enable Audio</label>
+            <label className="checkbox-label">Enable Audio</label>
           </div>
           
           {includeAudio && (
-            <div className="mt-2">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">Voice Settings</span>
+            <div className="voice-settings">
+              <div className="voice-header">
+                <span className="voice-title">Voice Settings</span>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={onTestConnection}
-                  className="text-xs"
+                  className="test-button"
                 >
                   🔧 Test Connection
                 </Button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Pro Voice:</label>
+              <div className="voice-grid">
+                <div className="voice-selector">
+                  <label className="voice-label">Pro Voice:</label>
                   <select
                     value={proVoice}
                     onChange={(e) => setProVoice(e.target.value)}
-                    className="w-full p-1 border rounded text-sm"
+                    className="voice-select"
                   >
                     <option value="Rachel">Rachel (Female)</option>
                     <option value="Adam">Adam (Male)</option>
@@ -130,12 +133,12 @@ export const DebateInput = ({
                     <option value="Elli">Elli (Female)</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Con Voice:</label>
+                <div className="voice-selector">
+                  <label className="voice-label">Con Voice:</label>
                   <select
                     value={conVoice}
                     onChange={(e) => setConVoice(e.target.value)}
-                    className="w-full p-1 border rounded text-sm"
+                    className="voice-select"
                   >
                     <option value="Adam">Adam (Male)</option>
                     <option value="Rachel">Rachel (Female)</option>
@@ -153,20 +156,22 @@ export const DebateInput = ({
         </div>
       )}
       
-      <div className="flex w-full max-w-sm items-center gap-2">
+      <div className="input-section">
         <Input 
           type="text" 
-          placeholder="Whats on your mind?" 
+          placeholder="What's on your mind?" 
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           disabled={loading}
           onKeyPress={(e) => e.key === 'Enter' && !loading && onStartDebate()}
+          className="debate-input"
         />
         <Button 
           type="button" 
           variant="outline"
           onClick={onStartDebate}
           disabled={loading || !prompt.trim()}
+          className="start-button"
         >
           {loading ? "Debating..." : "Start Debate"}
         </Button>
@@ -176,6 +181,7 @@ export const DebateInput = ({
             variant="secondary"
             onClick={onResetDebate}
             disabled={loading}
+            className="reset-button"
           >
             Reset
           </Button>
@@ -184,24 +190,24 @@ export const DebateInput = ({
 
       {/* Audio Controls */}
       {includeAudio && debateStarted && (
-        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Audio Controls:</span>
+        <div className="audio-controls">
+          <div className="audio-controls-header">
+            <div className="audio-status">
+              <span className="audio-title">Audio Controls:</span>
               {audioPlaying && (
-                <span className="text-sm text-green-600 flex items-center">
+                <span className="audio-indicator">
                   🔴 Playing
                 </span>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="audio-buttons">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={audioPlaying ? onPauseAudio : onResumeAudio}
                 disabled={loading}
-                className="px-3"
+                className="audio-button"
               >
                 {audioPlaying ? "⏸️ Pause" : "▶️ Resume"}
               </Button>
@@ -211,7 +217,7 @@ export const DebateInput = ({
                 size="sm"
                 onClick={onStopAudio}
                 disabled={loading}
-                className="px-3"
+                className="audio-button"
               >
                 🛑 Stop
               </Button>
@@ -222,21 +228,21 @@ export const DebateInput = ({
       
       {/* Status Display */}
       {loading && (
-        <div className="mt-2 text-blue-600 text-sm flex items-center gap-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+        <div className="status-loading">
+          <div className="loading-spinner"></div>
           AI agents are conversing "{prompt}"... 
           {isConnected ? "(Live stream)" : "(Processing)"}
         </div>
       )}
       
       {debateCompleted && (
-        <div className="mt-2 text-green-600 text-sm">
+        <div className="status-completed">
           Debate completed! {messagesCount} exchanges generated.
         </div>
       )}
       
       {error && (
-        <div className="mt-2 text-red-600 text-sm">
+        <div className="status-error">
           Error: {error}
         </div>
       )}
