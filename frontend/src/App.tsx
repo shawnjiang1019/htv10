@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 import { Input } from './components/ui/input'
 import { Button } from "@/components/ui/button"
@@ -8,7 +6,6 @@ import Debate from './debate'
 
 
 function App() {
-  const [count, setCount] = useState(0);
   const [prompt, setPrompt] = useState<string>("");
 
 

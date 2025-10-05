@@ -1,4 +1,5 @@
 import React from 'react';
+import type { AlternateLink } from '../../api/youtube-api';
 
 interface PopupHeaderProps {
   onClose: () => void;
@@ -87,13 +88,6 @@ export const BiasAnalysisSection: React.FC<BiasAnalysisSectionProps> = ({
   </div>
 );
 
-interface AlternateLink {
-  title: string;
-  url: string;
-  source: string;
-  description: string;
-}
-
 interface AlternateLinksProps {
   links: AlternateLink[];
 }
@@ -125,11 +119,15 @@ export const AlternateLinksSection: React.FC<AlternateLinksProps> = ({ links }) 
               >
                 {link.title}
               </a>
-              <span className="yt-transcript-link-source">{link.source}</span>
+              {link.source && (
+                <span className="yt-transcript-link-source">{link.source}</span>
+              )}
             </div>
-            <div className="yt-transcript-link-description">
-              {link.description}
-            </div>
+            {link.description && (
+              <div className="yt-transcript-link-description">
+                {link.description}
+              </div>
+            )}
           </div>
         ))}
       </div>
