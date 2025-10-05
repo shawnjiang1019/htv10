@@ -3,12 +3,27 @@
 // Types for Article API responses
 export interface ArticleData {
   summary: string;
-  alternatelinks: Array<{
+  alternateLinks: Array<{
     title: string;
     url: string;
     source: string;
     description: string;
   }>;
+}
+
+
+export interface AlternateLink {
+  title: string;
+  url: string;
+  source: string;
+  description: string;
+}
+
+
+export interface ArticleSummary {
+  url: string;
+  summary: string;
+  alternateLinks: AlternateLink[];
 }
 
 const API_BASE_URL = 'http://127.0.0.1:8080/article';
@@ -31,11 +46,19 @@ async function apiRequest<T>(endpoint: string): Promise<T> {
 
 // Article API service functions
 export const articleApi = {
-  // Get alternative articles based on transcript text
-  async getAlternativeArticles(transcriptText: string): Promise<ArticleData> {
-    return apiRequest<ArticleData>(`/alternative?transcript_text=${encodeURIComponent(transcriptText)}`);
-  }
+  // Get alternative articles based on article URL
+  async getAlternativeArticles(articleUrl: string): Promise<ArticleData> {
+    console.log('Making API request to:', `${API_BASE_URL}/alternative?url=${encodeURIComponent(articleUrl)}`);
+    return apiRequest<ArticleData>(`/alternative?url=${encodeURIComponent(articleUrl)}`);
+  }, 
+
+  async getArticleSummary(url: string): Promise<ArticleSummary> {
+    console.log('Making API request to:', `${API_BASE_URL}/alternative?url=${encodeURIComponent(url)}`);
+    return apiRequest<ArticleSummary>(`/alternative?url=${encodeURIComponent(url)}`);
+  },
 };
+
+
 
 // Export default for convenience
 export default articleApi;

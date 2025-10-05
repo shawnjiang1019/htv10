@@ -317,3 +317,36 @@
     align-self: flex-start;
   }
 }
+
+/* Error State */
+.error-state {
+  padding: 20px;
+  text-align: center;
+  color: #f87171;
+}
+
+.error-state p {
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.error-close-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.error-close-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.error-close-button:active {
+  transform: translateY(0);
+}

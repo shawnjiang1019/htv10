@@ -33,6 +33,8 @@ class Article_Summary(BaseModel):
     summary: str
     alternatelinks: list[Link]
 
+
+
 class TranscriptRequest(BaseModel):
     transcript_text: str
 

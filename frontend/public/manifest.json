@@ -14,14 +14,20 @@
   "host_permissions": [
     "https://www.youtube.com/*",
     "http://localhost:8000/*",
-    "http://127.0.0.1:8000/*"
+    "http://127.0.0.1:8080/*"
   ],
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
       "js": ["content.js"],
       "run_at": "document_end"
-    }
+    },
+    {
+    "matches": ["<all_urls>"],
+    "js": ["articleContent.js"],
+    "run_at": "document_end",
+    "exclude_matches": ["https://www.youtube.com/*"]
+  }
   ],
   "action": {
     "default_popup": "popup.html",
