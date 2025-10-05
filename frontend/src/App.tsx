@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import './App.css'
-import { Input } from './components/ui/input'
-import { Button } from "@/components/ui/button"
+import { DebateContainer } from './components/DebateContainer'
 import Debate from './debate'
-
 
 function App() {
   const [prompt, setPrompt] = useState<string>("");
@@ -25,29 +23,21 @@ function App() {
 
   return (
     <>
-     <div className="m-0 p-0 w-full min-h-screen">
-      <div className="sticky top-0 z-50 bg-white p-4 border-b border-gray-200 shadow-sm w-full m-0">
-        <p className="mb-4 mt-0">
-          Enter in a topic on your mind, our AI agents will use your scanned articles and videos to give you nothing but the facts.
-        </p>
-        <div className="flex w-full max-w-sm items-center gap-2">
-          <Input 
-            type="text" 
-            placeholder="Whats on your mind?" 
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-          />
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={handleButtonClick}
-          >
-            Enter
-          </Button>
+      {showNewDebate ? (
+        <DebateContainer />
+      ) : (
+        <div className="m-0 p-0 w-full min-h-screen">
+          <div className="p-4">
+            <button 
+              onClick={() => setShowNewDebate(true)}
+              className="mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Switch to New Debate Interface
+            </button>
+          </div>
+          <Debate />
         </div>
-      </div>
-      <Debate />
-      </div>
+      )}
     </>
   )
 }

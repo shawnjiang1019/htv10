@@ -6,9 +6,15 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import re
 import json
+import trafilatura
+import requests
+
+# BRAVE_KEY = os.getenv('BRAVE_API')
+# BASE_URL = os.getenv('BASE_URL')
 
 
-
+BRAVE_KEY="BSAcXlD8dkCTJhhNQQe87Z76DyCZzQb"
+BASE_URL="https://api.search.brave.com/res/v1/web/search"
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
 
@@ -38,10 +44,45 @@ def setup_gemini(api_key=None):
         raise ValueError("Gemini API key not found. Please set GEMINI_API_KEY environment variable or pass api_key parameter.")
     
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-2.5-pro')
+    return genai.GenerativeModel('gemini-2.5-flash')
 
 
 
+def get_article_raw(url):
+    dl = trafilatura.fetch_url(url)
+    return trafilatura.extract(dl, url, favor_precision=True)
+
+
+@router.get("/urls")
+def get_news_articles(query: str, count=4):
+    headers = {
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip",
+        "X-Subscription-Token": BRAVE_KEY
+    }
+    params = {
+        "q": query,
+        #"result_filter": "news",  # Filter to only get news results
+        "count": count,
+        "search_lang": "en"
+    }
+
+    response = requests.get(BASE_URL, headers=headers, params=params)
+    return response.json()
+    articles = []
+    if 'results' in data:
+        for result in data['results']:
+            article = {
+                'title': result.get('title', ''),
+                'url': result.get('url', ''),
+                'description': result.get('description', ''),
+                'source': result.get('source', ''),
+                'published': result.get('published', '')
+            }
+            articles.append(article)
+    
+    return articles
+    
 
 def get_alternative_links(transcript_text, model=None, api_key=None):
     if model is None:
@@ -53,27 +94,27 @@ def get_alternative_links(transcript_text, model=None, api_key=None):
         transcript_text = transcript_text[:max_length] + "... [transcript truncated]"
 
     # Clean transcript more thoroughly
-    cleaned_transcript = (transcript_text
-                         .replace('"', "'")
-                         .replace('\n', ' ')
-                         .replace('\r', ' ')
-                         .replace('\t', ' ')
-                         .strip())
+    # cleaned_transcript = (transcript_text
+    #                      .replace('"', "'")
+    #                      .replace('\n', ' ')
+    #                      .replace('\r', ' ')
+    #                      .replace('\t', ' ')
+    #                      .strip())
     
-    # Remove multiple spaces
-    cleaned_transcript = ' '.join(cleaned_transcript.split())
+    # # Remove multiple spaces
+    # cleaned_transcript = ' '.join(cleaned_transcript.split())
 
     prompt = f"""
     You are an AI that provides alternative perspectives on news articles.
     
-    Given the following transcript, identify the main viewpoint and provide opposing perspectives.
+    Given the following transcript, identify the main viewpoint and provide different perspectives.
     
     IMPORTANT RULES:
     - Summary: EXACTLY 1-2 sentences, maximum 40 words
-    - Alternative links: Provide exactly 3 articles with opposing viewpoints
+    - Alternative links: Provide exactly 3 articles with differing viewpoints
     - ALL text must use ONLY single quotes, never double quotes
     - NO line breaks or special characters in any field
-    - URLs should be realistic but can be fictional
+    - The URLS MUST BE TO ACTUAL ARTICLES, DO NOT MAKE UP YOUR OWN
     - Keep descriptions under 80 characters each
 
     Expected JSON format (use ONLY single quotes in content):
@@ -101,7 +142,7 @@ def get_alternative_links(transcript_text, model=None, api_key=None):
         ]
     }}
     
-    Transcript: {cleaned_transcript}
+    Transcript: {transcript_text}
     
     Respond with valid JSON only. NO additional text before or after.
     """
@@ -112,10 +153,11 @@ def get_alternative_links(transcript_text, model=None, api_key=None):
             contents=prompt,
             generation_config={
                 "temperature": 0.1,  # Very low temperature for consistent formatting
-                "max_output_tokens": 1000,  # Reduced to ensure shorter responses
+                "max_output_tokens": 2048,  # Reduced to ensure shorter responses
                 "top_p": 0.8,
             },
         )
+        print(response.text)
         
         # Check if response exists
         if not response or not response.text:
@@ -173,25 +215,21 @@ def get_alternative_links(transcript_text, model=None, api_key=None):
     
 
 
-@router.post("/alternative")
-def get_alternative_articles(request: TranscriptRequest):
+@router.get("/alternative")
+def get_alternative_articles(url: str):
     """
     Get alternative articles based on transcript text.
     Accepts larger text inputs via request body.
     """
     try:
-        # Clean and preprocess the transcript text
-        cleaned_text = request.transcript_text.strip()
-        print("text cleaned!!!")
-        
-        # Log the length for debugging
-        print(f"Received transcript with {len(cleaned_text)} characters")
-        
-        payload = get_alternative_links(transcript_text=cleaned_text)
-    
+        print("getting the payload...")
+        # get the raw article        
+        payload = get_article_raw(url=url)
+
+        result = get_alternative_links(payload)
         return {
             "success": True,
-            "data": payload,
+            "data": result,
             "message": "Alternative articles generated successfully"
         }
     except Exception as e:
