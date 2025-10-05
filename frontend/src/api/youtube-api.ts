@@ -40,6 +40,11 @@ export interface FlashEvent {
   content: string;
   duration: number;
   url: string;
+  factuality_classification: string;
+  context_omission: string;
+  emotional_language: string;
+  emotional_tone: string;
+  reasoning_and_sources: string;
 }
 
 export interface CombinedData extends TranscriptData {

@@ -48,17 +48,34 @@ let liveCheckRoot: Root | null = null;
 class VideoTimeTracker {
   private currentTime = 0;
   private duration = 0;
+  private isPlaying = false;
   private interval: number;
+  private videoElement: HTMLVideoElement | null = null;
 
   constructor() {
     this.interval = setInterval(this.updateTime.bind(this), 1000);
+    this.setupVideoListeners();
+  }
+
+  private setupVideoListeners() {
+    const videoElement = document.querySelector<HTMLVideoElement>('video.html5-main-video');
+    if (videoElement) {
+      this.videoElement = videoElement;
+      videoElement.addEventListener('play', () => { this.isPlaying = true; });
+      videoElement.addEventListener('pause', () => { this.isPlaying = false; });
+      videoElement.addEventListener('waiting', () => { this.isPlaying = false; });
+      videoElement.addEventListener('playing', () => { this.isPlaying = true; });
+      this.isPlaying = !videoElement.paused;
+    }
   }
 
   private updateTime() {
-    const videoElement = document.querySelector<HTMLVideoElement>('video.html5-main-video');
+    const videoElement = this.videoElement || document.querySelector<HTMLVideoElement>('video.html5-main-video');
     if (videoElement) {
+      this.videoElement = videoElement;
       this.currentTime = videoElement.currentTime;
       this.duration = videoElement.duration || 0;
+      this.isPlaying = !videoElement.paused;
     }
   }
 
@@ -70,8 +87,18 @@ class VideoTimeTracker {
     return this.duration;
   }
 
+  getIsPlaying() {
+    return this.isPlaying;
+  }
+
   cleanup() {
     clearInterval(this.interval);
+    if (this.videoElement) {
+      this.videoElement.removeEventListener('play', () => { this.isPlaying = true; });
+      this.videoElement.removeEventListener('pause', () => { this.isPlaying = false; });
+      this.videoElement.removeEventListener('waiting', () => { this.isPlaying = false; });
+      this.videoElement.removeEventListener('playing', () => { this.isPlaying = true; });
+    }
   }
 }
 
@@ -159,14 +186,24 @@ async function injectPopup() {
             timestamp: 10,
             content: "This is a test fact check",
             duration: 5,
-            url: "https://example.com"
+            url: "https://example.com",
+            factuality_classification: "mostly correct",
+            context_omission: "minor",
+            emotional_language: "none",
+            emotional_tone: "neutral",
+            reasoning_and_sources: "Based on available evidence"
           },
           {
             id: "test_2", 
             timestamp: 30,
             content: "Another test fact check",
             duration: 4,
-            url: "https://example.com"
+            url: "https://example.com",
+            factuality_classification: "incorrect",
+            context_omission: "major",
+            emotional_language: "strong",
+            emotional_tone: "negative",
+            reasoning_and_sources: "Contradicts verified sources"
           }
         ];
         
@@ -204,6 +241,7 @@ async function injectPopup() {
             events={flashEvents}
             currentTime={currentTime}
             loading={isLoading}
+            isVideoPlaying={videoTime.getIsPlaying()}
           />
           <Timeline 
             events={timelineEvents}

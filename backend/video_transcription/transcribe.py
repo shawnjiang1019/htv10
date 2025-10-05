@@ -305,13 +305,30 @@ def parse_fact_checks_response(gemini_response, video_id):
                         "timestamp": int(float(fact_check.get("timestamp", 0))),
                         "content": str(fact_check.get("content", "")),
                         "duration": int(float(fact_check.get("duration", 3))),
-                        "url": url_field
+                        "url": url_field,
+                        "factuality_classification": str(fact_check.get("factuality_classification", "unverifiable")),
+                        "context_omission": str(fact_check.get("context_omission", "none")),
+                        "emotional_language": str(fact_check.get("emotional_language", "none")),
+                        "emotional_tone": str(fact_check.get("emotional_tone", "neutral")),
+                        "reasoning_and_sources": str(fact_check.get("reasoning_and_sources", ""))
                     }
                     
-                    # Validate required fields
+                    # Validate required fields and ensure enum values are correct
+                    valid_factuality = cleaned_fact_check["factuality_classification"] in [
+                        "correct", "mostly correct", "somewhat correct", 
+                        "mostly incorrect", "incorrect", "misleading", "unverifiable"
+                    ]
+                    valid_context = cleaned_fact_check["context_omission"] in ["none", "minor", "major"]
+                    valid_emotion = cleaned_fact_check["emotional_language"] in ["none", "mild", "strong"]
+                    valid_tone = cleaned_fact_check["emotional_tone"] in [
+                        "neutral", "positive", "negative", "mixed", "sarcastic", "sensationalist"
+                    ]
+                    
                     if (cleaned_fact_check["content"] and 
                         cleaned_fact_check["timestamp"] >= 0 and 
-                        cleaned_fact_check["duration"] > 0):
+                        cleaned_fact_check["duration"] > 0 and
+                        valid_factuality and valid_context and 
+                        valid_emotion and valid_tone):
                         cleaned_fact_checks.append(cleaned_fact_check)
             
             return cleaned_fact_checks
@@ -374,33 +391,46 @@ def getYouTubeTranscript(video_id: str):
         model = setup_gemini()
         
         # The fact-checking prompt that returns FlashEvent format
-        prompt = f"""You are an expert fact-checker. Analyze this YouTube video transcript and identify factual claims that need verification.
+        prompt = f"""You are an expert, meticulous, and neutral fact-checker and bias analyst. Your primary goal is to provide a comprehensive and objective analysis of the provided YouTube video content. Analyze this YouTube video transcript, identify the main topic(s) and any related statements/claims.
 
 Video ID: {video_id}
 Transcript: {transcript_text}
 
-For each factual claim you find that needs fact-checking, return a JSON array with objects in this EXACT format:
+For each factual statement you find, return a JSON array with objects in this EXACT format:
 {{
     "id": "unique_string_id",
     "timestamp": number_in_seconds,
     "content": "fact_check_description_here",
+    "factuality_classification": "correct" | "mostly correct" | "somewhat correct" | "mostly incorrect" | "incorrect" | "misleading" | "unverifiable",
+    "context_omission": "none" | "minor" | "major",
+    "emotional_language": "none" | "mild" | "strong",
+    "emotional_tone": "neutral" | "positive" | "negative" | "mixed" | "sarcastic" | "sensationalist",
+    "reasoning_and_sources": "brief_explanation_here",
     "duration": number_in_seconds,
     "url": "actual_http_or_https_url_here"
 }}
 
 Requirements:
-- Return ONLY a JSON array of fact check objects
+- Return ONLY the JSON array of fact check objects. Do not include any other text, explanations, or formatting outisde of the JSON object.
 - Each object must have exactly these 5 fields: id, timestamp, content, duration, url
 - id should be unique (use video_id + timestamp + index)
-- timestamp should be the time in seconds when the claim is made
-- content should describe what needs fact-checking
-- duration should be how long to show the fact check (3-5 seconds)
-- url MUST be a valid HTTP/HTTPS URL (e.g., https://www.google.com/search?q=your+search+terms)
+- timestamp should be the time in an integer number seconds denoting when the statement is made. For example, if the statement is made at 1 minute and 30 seconds, timestamp should be 90.
+- content should be a concise description of the statement to be analyzed (max 200 characters)
+- factuality_classification should be one of the specified categories, and the selected category should be a perfect match to the claim's truthfulness
+- context_omission should be one of the specified categories, and the selected category should reflect how much important context is missing from the claim
+- emotional_language should be one of the specified categories, and the selected category should reflect the intensity of emotional language used in the claim
+- reasoning should explain how the factuality classification was reached, citing counter-evidence or supporting information from verifiable, independent sources. 
+- duration should be how long the fact check should be displayed to the user, based on the duration of the quote. The duration must be at minimum 5 seconds and at most 20 seconds.
+- url MUST be a valid HTTP/HTTPS URL (e.g., https://www.google.com/search?q=your+search+terms). Prioritize URLs from reputable fact-checking organizations. If none are found, use a Google search URL for the claim.
 
-Return maximum 10 fact checks. If no fact-checkable claims are found, return an empty array []."""
+Analyze at least two statements for each minute of the video's duration. For example, if the video is 10 minutes long, analyze at least 20 statements/claims. If no fact-checkable claims or biased statments are found, return an empty array []."""
+
+        print(prompt)
         
         # Generate response from Gemini
         response = model.generate_content(prompt)
+
+        print(response)
         
         # Parse the response to get FlashEvent array
         fact_checks = parse_fact_checks_response(response.text, video_id)
