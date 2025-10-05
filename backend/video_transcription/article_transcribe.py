@@ -8,6 +8,7 @@ import re
 import json
 import trafilatura
 import requests
+from serpapi import GoogleSearch
 
 # BRAVE_KEY = os.getenv('BRAVE_API')
 # BASE_URL = os.getenv('BASE_URL')
@@ -19,6 +20,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
 
 router = APIRouter()
+load_dotenv()
 
 
 class Link(BaseModel):
@@ -83,160 +85,187 @@ def get_news_articles(query: str, count=4):
     
     return articles
     
-
-def get_alternative_links(transcript_text, model=None, api_key=None):
+def create_summary(transcript_text, model=None, api_key=None):
+    """Create a summary of the transcript using Gemini"""
     if model is None:
-        model = setup_gemini("AIzaSyDGp3xJiFDvgKtFrn9DAjzxV6glb5qu4eM")
-
-    # Truncate very long transcripts to improve performance
-    max_length = 6000  # Reduced to avoid JSON parsing issues
-    if len(transcript_text) > max_length:
-        transcript_text = transcript_text[:max_length] + "... [transcript truncated]"
-
-    # Clean transcript more thoroughly
-    # cleaned_transcript = (transcript_text
-    #                      .replace('"', "'")
-    #                      .replace('\n', ' ')
-    #                      .replace('\r', ' ')
-    #                      .replace('\t', ' ')
-    #                      .strip())
+        model = setup_gemini(api_key)
     
-    # # Remove multiple spaces
-    # cleaned_transcript = ' '.join(cleaned_transcript.split())
-
     prompt = f"""
-    You are an AI that provides alternative perspectives on news articles.
+    Summarize this video transcript in exactly 2 sentences with no special characters or quotes:
     
-    Given the following transcript, identify the main viewpoint and provide different perspectives.
-    
-    IMPORTANT RULES:
-    - Summary: EXACTLY 1-2 sentences, maximum 40 words
-    - Alternative links: Provide exactly 3 articles with differing viewpoints
-    - ALL text must use ONLY single quotes, never double quotes
-    - NO line breaks or special characters in any field
-    - The URLS MUST BE TO ACTUAL ARTICLES, DO NOT MAKE UP YOUR OWN
-    - Keep descriptions under 80 characters each
-
-    Expected JSON format (use ONLY single quotes in content):
-    {{
-        "summary": "Brief summary using only single quotes",
-        "alternatelinks": [
-            {{
-                "title": "Article title with single quotes only",
-                "url": "https://example.com/article1",
-                "source": "Source Name", 
-                "description": "Brief description with single quotes only"
-            }},
-            {{
-                "title": "Second article title",
-                "url": "https://example.com/article2",
-                "source": "Another Source", 
-                "description": "Another brief description"
-            }},
-            {{
-                "title": "Third article title",
-                "url": "https://example.com/article3",
-                "source": "Third Source", 
-                "description": "Third brief description"
-            }}
-        ]
-    }}
-    
-    Transcript: {transcript_text}
-    
-    Respond with valid JSON only. NO additional text before or after.
+    {transcript_text}
     """
     
     try:
-        print(f"\nGenerating alternative articles for transcript ({len(transcript_text)} chars)...")
-        response = model.generate_content(
-            contents=prompt,
-            generation_config={
-                "temperature": 0.1,  # Very low temperature for consistent formatting
-                "max_output_tokens": 2048,  # Reduced to ensure shorter responses
-                "top_p": 0.8,
-            },
-        )
-        print(response.text)
-        
-        # Check if response exists
-        if not response or not response.text:
-            print("❌ Empty response from Gemini")
-            return
-        
-        print(f"Raw response: {response.text}")
-        
-        # Clean the response text more thoroughly
-        response_text = response.text.strip()
-        
-        # Remove any markdown formatting
-        if response_text.startswith("```json"):
-            response_text = response_text.replace("```json", "").replace("```", "").strip()
-        elif response_text.startswith("```"):
-            response_text = response_text.replace("```", "").strip()
-        
-        # Additional cleaning for common JSON issues
-        response_text = (response_text
-                        .replace('\n', ' ')
-                        .replace('\r', ' ')
-                        .replace('\t', ' '))
-        
-        # Remove extra whitespace
-        response_text = ' '.join(response_text.split())
-        
-        try:
-            # Parse the JSON
-            parsed_data = json.loads(response_text)
-            
-            # Validate structure
-            if not isinstance(parsed_data, dict):
-                raise ValueError("Response is not a dictionary")
-            
-            if "summary" not in parsed_data or "alternatelinks" not in parsed_data:
-                raise ValueError("Missing required fields")
-            
-            # Validate using Pydantic model
-            article_summary = Article_Summary(**parsed_data)
-            
-            print(f"✅ Generated summary with {len(article_summary.alternatelinks)} alternative links")
-            return article_summary
-            
-        except json.JSONDecodeError as e:
-            print(f"❌ JSON parsing error: {e}")
-            print(f"Problematic response text: {response_text}")
-            return 
-        except ValueError as e:
-            print(f"❌ Validation error: {e}")
-            return
-            
+        print("\nGenerating summary with Gemini...")
+        response = model.generate_content(prompt)
+        return response.text
     except Exception as e:
-        print(f"❌ Error generating alternative articles: {e}")
-        return
+        print(f"Error generating summary: {e}")
+        return None
+
+
+
+def generate_alternate_links(article_text, article_title=None, model=None, api_key=None):
+    """Generate alternate links with opposing perspectives using web search"""
+    try:
+        if model is None:
+            model = setup_gemini(api_key)
+        
+        # Truncate very long articles
+        max_length = 800
+        if len(article_text) > max_length:
+            article_text = article_text[:max_length]
+        
+        # Analyze bias and get opposing search terms
+        bias_prompt = f"""
+        Analyze this article's perspective and suggest 3 search terms for finding opposing viewpoints:
+        
+        Title: {article_title or "Unknown"}
+        Content: {article_text}
+        
+        Identify the main topic and viewpoint, then suggest 3 search terms that would find opposing or different perspectives.
+        Return only the 3 search terms separated by commas:
+        """
+        
+        print("\nAnalyzing bias and finding opposing perspectives...")
+        response = model.generate_content(bias_prompt)
+        search_terms = response.text.strip().replace('\n', ', ')
+        print(f"Opposing search terms: {search_terms}")
+        
+        # Split terms and search each one
+        term_list = [term.strip() for term in search_terms.split(',')][:3]
+        
+        all_results = []
+        for term in term_list:
+            search_results = search_web(term)
+            all_results.extend(search_results)
+        
+        # Return top 3 results from all searches
+        return all_results[:3]
+        
+    except Exception as e:
+        print(f"Error generating alternate links: {e}")
+        return []
+
+def search_web(query):
+    """Search the web using SerpAPI with fallback"""
+    try:
+        serpapi_key = os.getenv('SERPAPI_API_KEY')
+        if not serpapi_key:
+            print("No SerpAPI key found, using fallback")
+            return create_fallback_results(query)
+        
+        print(f"Searching for: {query}")
+        search = GoogleSearch({
+            "q": query,
+            "api_key": serpapi_key,
+            "num": 3  # Get 3 results
+        })
+        
+        results = search.get_dict()
+        
+        # Check for API errors
+        if "error" in results:
+            print(f"SerpAPI error: {results['error']}")
+            return create_fallback_results(query)
+        
+        organic_results = results.get("organic_results", [])
+        
+        if not organic_results:
+            print("No organic results found, using fallback")
+            return create_fallback_results(query)
+        
+        formatted_results = []
+        for result in organic_results:
+            url = result.get("link", "")
+            title = result.get("title", "")
+            
+            # Validate URL format
+            if url and (url.startswith("http://") or url.startswith("https://")):
+                formatted_results.append({
+                    "title": title or "Article Title",
+                    "url": url,
+                    "source": result.get("displayed_link", "Unknown Source"),
+                    "description": result.get("snippet", "")[:100] + "..." if result.get("snippet") else ""
+                })
+        
+        # If we got valid results, return them
+        if formatted_results:
+            return formatted_results
+        else:
+            print("No valid URLs found, using fallback")
+            return create_fallback_results(query)
+        
+    except Exception as e:
+        print(f"Web search error: {e}")
+        return create_fallback_results(query)
+
+def create_fallback_results(query):
+    """Create fallback search results with reliable URLs"""
+    query_encoded = query.replace(" ", "+")
+    
+    fallback_results = [
+        {
+            "title": f"Google Search: {query}",
+            "url": f"https://www.google.com/search?q={query_encoded}",
+            "source": "Google",
+            "description": f"Search results for {query}"
+        },
+        {
+            "title": f"Wikipedia: {query}",
+            "url": f"https://en.wikipedia.org/wiki/{query.replace(' ', '_')}",
+            "source": "Wikipedia",
+            "description": f"Wikipedia article about {query}"
+        },
+        {
+            "title": f"BBC News: {query}",
+            "url": "https://www.bbc.com/news",
+            "source": "BBC News",
+            "description": f"BBC News coverage related to {query}"
+        }
+    ]
+    
+    return fallback_results
     
 
 
 @router.get("/alternative")
 def get_alternative_articles(url: str):
     """
-    Get alternative articles based on transcript text.
-    Accepts larger text inputs via request body.
+    Get alternative articles based on article URL.
     """
     try:
-        print("getting the payload...")
-        # get the raw article        
+        print(f"Processing article from URL: {url}")
+        
+        # Get the raw article content
         payload = get_article_raw(url=url)
-
-        result = get_alternative_links(payload)
+        
+        if not payload:
+            return {
+                "summary": "Could not extract article content",
+                "alternateLinks": []
+            }
+        
+        print(f"Extracted article content: {len(payload)} characters")
+        
+        # Generate summary
+        summary = create_summary(transcript_text=payload)
+        
+        # Generate alternative links using web search
+        alternate_links = generate_alternate_links(payload)
+        
         return {
-            "success": True,
-            "data": result,
-            "message": "Alternative articles generated successfully"
+            "summary": summary or "Summary not available",
+            "alternateLinks": alternate_links
         }
     except Exception as e:
         print(f"Error in get_alternative_articles: {str(e)}")
         return {
-            "success": False,
-            "data": None,
-            "error": str(e),
-            "message": "Failed to generate alternative articles"
+            "summary": f"Error: {str(e)}",
+            "alternateLinks": []
         }
+
+
+
+
