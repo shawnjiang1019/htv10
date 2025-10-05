@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import youtubeApi, { type CombinedData } from './api/api';
-import './transcript-popup.css';
-import TP_DUMMY from './TP_DUMMY';
+// import TP_DUMMY from './TP_DUMMY';
+import {
+  PopupHeader,
+  LoadingState,
+  SummarySection,
+  BiasAnalysisSection,
+  PopupFooter
+} from './components/transcript-popup/sections';
+import Timeline from './components/transcript-popup/Timeline';
 
 interface TranscriptPopupProps {
   videoId: string;
@@ -18,6 +25,71 @@ function getBiasLevel(score: number): BiasInfo {
   if (score < 0.5) return { level: "Moderate Bias", color: "#F59E0B" };
   return { level: "High Bias", color: "#EF4444" };
 }
+
+const DUMMY_DATA = {
+  summary: "This video discusses the latest developments in artificial intelligence and machine learning, covering topics from neural networks to practical applications in various industries. The presenter provides insights into current trends and future possibilities in the field.",
+  alternateLinks: [
+    {
+      title: "AI Ethics and Bias - Academic Perspective",
+      url: "https://example.com/ai-ethics",
+      source: "MIT Technology Review",
+      description: "Comprehensive analysis of ethical considerations in AI development"
+    },
+    {
+      title: "Machine Learning Fundamentals",
+      url: "https://example.com/ml-fundamentals",
+      source: "Stanford CS229",
+      description: "Free course covering the mathematical foundations of ML"
+    },
+    {
+      title: "AI in Healthcare - Research Paper",
+      url: "https://example.com/ai-healthcare",
+      source: "Nature Medicine",
+      description: "Peer-reviewed research on AI applications in medical diagnosis"
+    },
+    {
+      title: "Open Source AI Tools",
+      url: "https://example.com/open-source-ai",
+      source: "GitHub",
+      description: "Community-driven AI tools and frameworks for developers"
+    }
+  ],
+  biasScore: 0.15,
+  confidence: 0.87
+};
+
+const DUMMY_TIMELINE_EVENTS=  [
+  {
+    content: "Introduction to AI and machine learning concepts",
+    start: 0,
+    end: 135
+  },
+  {
+    content: "Deep dive into neural network architectures",
+    start: 135,
+    end: 342
+  },
+  {
+    content: "Real-world applications in healthcare and finance",
+    start: 342,
+    end: 510
+  },
+  {
+    content: "Discussing ethical implications and bias in AI",
+    start: 510,
+    end: 665
+  },
+  {
+    content: "Future trends and predictions for AI development",
+    start: 665,
+    end: 800
+  },
+  {
+    content: "Q&A session and concluding remarks",
+    start: 800,
+    end: 920
+  }
+];
 
 export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClose }) => {
   const [data, setData] = useState<CombinedData | null>(null);
@@ -39,84 +111,46 @@ export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClo
 
     fetchData();
   }, [videoId]);
-  
 
   if (loading) {
     return (
       <div id="youtube-transcript-ai" className="yt-transcript-popup">
-        <div className="yt-transcript-header">
-          <div className="yt-transcript-title">
-            <h3>📝 AI Transcript & Analysis</h3>
-            <button onClick={onClose} className="yt-transcript-close">×</button>
-          </div>
-        </div>
+        <PopupHeader onClose={onClose} />
         <div className="yt-transcript-content">
-          <div className="yt-transcript-loading">
-            <div className="spinner"></div>
-            <p>Loading transcript and analysis...</p>
-          </div>
+          <LoadingState />
         </div>
       </div>
     );
   }
 
-  if (useDummyData) {
-    return <TP_DUMMY/>;
-  }
+  DUMMY_DATA
+  useDummyData
 
-  // Render with real API data
   const biasInfo = getBiasLevel(data?.bias_analysis?.bias_score ?? 0);
 
   return (
     <div id="youtube-transcript-ai" className="yt-transcript-popup">
-      <div className="yt-transcript-header">
-        <div className="yt-transcript-title">
-          <h3>📝 AI Transcript & Analysis</h3>
-          <button onClick={onClose} className="yt-transcript-close">×</button>
-        </div>
-      </div>
+      <PopupHeader onClose={onClose} />
       
       <div className="yt-transcript-content">
-        <div className="yt-transcript-section">
-          <div className="yt-transcript-section-header">
-            <h4>📋 Summary</h4>
-            <div className="yt-transcript-bias-indicator">
-              <span className="yt-transcript-bias-label">Bias Level:</span>
-              <span className="yt-transcript-bias-score" style={{ color: biasInfo.color }}>
-                {biasInfo.level}
-              </span>
-            </div>
-          </div>
-          <div className="yt-transcript-summary">
-            {data?.summary || 'No summary available'}
-          </div>
-        </div>
+        <SummarySection
+          summary={data?.summary || 'No summary available'}
+          biasLevel={biasInfo.level}
+          biasColor={biasInfo.color}
+        />
 
-        <div className="yt-transcript-section">
-          <div className="yt-transcript-section-header">
-            <h4>🎯 Bias Analysis</h4>
-          </div>
-          <div className="yt-transcript-bias-details">
-            <p><strong>View Point:</strong> {data?.bias_analysis?.view_point || 'None detected'}</p>
-            {data?.bias_analysis?.sentences && data.bias_analysis.sentences.length > 0 ? (
-              <>
-                <p><strong>Biased Sentences:</strong></p>
-                <ul>
-                  {data.bias_analysis.sentences.map((sentence, index) => (
-                    <li key={index}>{sentence}</li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <p>No biased sentences detected</p>
-            )}
-          </div>
-        </div>
+        <BiasAnalysisSection
+          viewPoint={data?.bias_analysis?.view_point || 'None detected'}
+          sentences={data?.bias_analysis?.sentences || []}
+        />
+        
+        <Timeline 
+          events={DUMMY_TIMELINE_EVENTS}
+          currentTime={250}
+          onSeek={() => {alert(1)}}
+        />
+        <PopupFooter videoId={videoId} />
 
-        <div className="yt-transcript-footer">
-          <div className="yt-transcript-video-id">Video ID: {videoId}</div>
-          <div className="yt-transcript-powered-by">Powered by AI</div>
-        </div>
       </div>
     </div>
   );
