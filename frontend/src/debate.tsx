@@ -1,11 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useState, useRef, useEffect } from 'react';
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, Bot, User } from "lucide-react";
 
 
 interface Message {
@@ -14,8 +11,10 @@ interface Message {
   sender: 'agent1' | 'agent2';
 }
 
+
+
 const debate = () => {
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [messages] = useState<Message[]>([]);
 
     const scrollAreaRef = useRef<HTMLDivElement>(null);
         useEffect(() => {
@@ -25,16 +24,6 @@ const debate = () => {
     }, [messages]);
 
 
-    const addMessage = (content: string, sender: 'agent1' | 'agent2') => {
-        const newMessage: Message = {
-            id: Date.now().toString() + Math.random(),
-            content,
-            sender,
-        };
-        
-        setMessages(prev => [...prev, newMessage]);
-        return newMessage;
-    };
 
 
     return (
