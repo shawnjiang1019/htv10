@@ -1,4 +1,6 @@
-// Types for API responses
+// YouTube Transcript API client
+
+// Types for YouTube API responses
 export interface TranscriptData {
   video_id: string;
   sentences: string[];
@@ -36,8 +38,8 @@ async function apiRequest<T>(endpoint: string): Promise<T> {
   }
 }
 
-// API service functions
-export const transcriptApi = {
+// YouTube API service functions
+export const youtubeApi = {
   // Get transcript data
   async getTranscript(videoId: string): Promise<TranscriptData> {
     return apiRequest<TranscriptData>(`/get-transcript?video_id=${videoId}`);
@@ -68,4 +70,4 @@ export const transcriptApi = {
 };
 
 // Export default for convenience
-export default transcriptApi;
+export default youtubeApi;
