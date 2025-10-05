@@ -54,57 +54,7 @@ export const DebateContainer = () => {
             
             console.log('Adding message to state:', newMessage);
             setMessages(prev => [...prev, newMessage]);
-        } else {const handleWebSocketMessage = useCallback((data: WebSocketMessage) => {
-            console.log('Received WebSocket message:', data);
-
-            switch (data.type) {
-                case 'start':
-                console.log('Debate started for:', data.claim);
-                break;
-
-                case 'message':
-                console.log('Processing message:', data);
-                if (data.speaker && data.message) {
-                    const newMessage: DebateMessage = {
-                    speaker: data.speaker,
-                    message: data.message,
-                    round: data.round,
-                    timestamp: data.timestamp || new Date().toISOString()
-                    };
-                    
-                    console.log('Adding message to state:', newMessage);
-                    setMessages(prev => [...prev, newMessage]);
-                } else {
-                    console.warn('Missing speaker or message in WebSocket data:', data);
-                }
-                break;
-
-                case 'complete':
-                console.log('Debate completed!', data);
-                setLoading(false);
-                setDebateCompleted(true);
-                
-                // Process the conversation_history from the complete message
-                if (data.conversation_history && Array.isArray(data.conversation_history)) {
-                    const formattedMessages: DebateMessage[] = data.conversation_history.map((entry: any) => ({
-                    speaker: entry.speaker === 'Proponent' ? 'pro' : 'con', // Map speaker names
-                    message: entry.response, // Use 'response' field instead of 'message'
-                    round: entry.round,
-                    timestamp: new Date().toISOString() // Add timestamp if not present
-                    }));
-                    
-                    console.log('Setting messages from conversation_history:', formattedMessages);
-                    setMessages(formattedMessages);
-                }
-                break;
-
-                case 'error':
-                console.error('WebSocket error:', data.message);
-                setError(data.message || 'An error occurred');
-                setLoading(false);
-                break;
-            }
-            }, []);
+        } else {
             console.warn('Missing speaker or message in WebSocket data:', data);
         }
         break;

@@ -4,22 +4,7 @@ import { DebateContainer } from './components/DebateContainer'
 import Debate from './debate'
 
 function App() {
-  const [prompt, setPrompt] = useState<string>("");
-
-
-  const handleButtonClick = () => {
-    if (!prompt || prompt.trim() === "") {
-      alert("Please enter something first!");
-      return;
-    }
-
-    else{
-      // handle API
-      console.log(prompt);
-    }
-
-  }
-
+  const [showNewDebate, setShowNewDebate] = useState<boolean>(false);
 
   return (
     <>

@@ -1,6 +1,5 @@
 import { Input } from './ui/input'
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 
 interface DebateInputProps {
   prompt: string;
