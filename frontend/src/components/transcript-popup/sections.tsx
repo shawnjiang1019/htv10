@@ -100,7 +100,7 @@ export const AlternateLinksSection: React.FC<AlternateLinksProps> = ({ links }) 
   return (
     <div className="yt-transcript-section">
       <div className="yt-transcript-section-header">
-        <h4>🔗 Unbiased Resources</h4>
+        <h4>🔗 Alternate Resources</h4>
         <span className="yt-transcript-link-count">{links.length} sources</span>
       </div>
       <div className="yt-transcript-links">
@@ -123,9 +123,20 @@ export const AlternateLinksSection: React.FC<AlternateLinksProps> = ({ links }) 
                 <span className="yt-transcript-link-source">{link.source}</span>
               )}
             </div>
-            {link.description && (
-              <div className="yt-transcript-link-description">
-                {link.description}
+            {link.url && (
+              <div
+                className="yt-transcript-link-url"
+                style={{
+                  color: '#2563eb', // Tailwind blue-600
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                }}
+                title={link.url}
+              >
+                {link.url}
               </div>
             )}
           </div>

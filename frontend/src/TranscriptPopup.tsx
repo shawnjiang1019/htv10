@@ -28,12 +28,19 @@ export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClo
         setLoading(true);
         setError(null);
         console.log('Fetching data for video ID:', videoId);
+        
+        // Check if video ID is valid
+        if (!videoId || videoId === 'unknown') {
+          throw new Error('Invalid video ID. Please make sure you are on a YouTube video page.');
+        }
+        
         const result = await youtubeApi.getYouTubeSummary(videoId);
         console.log('API response:', result);
         setData(result);
       } catch (error) {
         console.error('Failed to load data:', error);
-        setError('Failed to load video summary. Please try again.');
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setError(`Failed to load video summary: ${errorMessage}`);
       } finally {
         setLoading(false);
       }

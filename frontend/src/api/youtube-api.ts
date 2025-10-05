@@ -38,12 +38,53 @@ export interface CombinedData extends TranscriptData {
   bias_analysis: BiasAnalysis;
 }
 
-const API_BASE_URL = 'http://localhost:8000/vid';
+const API_BASE_URL = 'http://127.0.0.1:8000/vid';
 
 async function apiRequest<T>(endpoint: string): Promise<T> {
   try {
     console.log(`Making request to: ${API_BASE_URL}${endpoint}`);
-    const response = await fetch(`${API_BASE_URL}${endpoint}`);
+    
+    // Try using Chrome messaging API to communicate with background script
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      console.log('Using Chrome messaging API...');
+      
+      // Extract video ID from endpoint
+      const videoId = endpoint.split('/').pop();
+      console.log('Extracted video ID for background script:', videoId);
+      
+      return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(
+          { action: 'fetchYouTubeSummary', videoId },
+          (response) => {
+            console.log('Chrome messaging response:', response);
+            
+            if (chrome.runtime.lastError) {
+              console.error('Chrome runtime error:', chrome.runtime.lastError);
+              reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
+              return;
+            }
+            
+            if (response.success) {
+              resolve(response.data);
+            } else {
+              reject(new Error(response.error || 'Unknown error from background script'));
+            }
+          }
+        );
+      });
+    }
+    
+    // Fallback to direct fetch if Chrome API is not available
+    console.log('Chrome API not available, trying direct fetch...');
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
     
     console.log('Response status:', response.status);
     console.log('Response ok:', response.ok);
@@ -59,8 +100,48 @@ async function apiRequest<T>(endpoint: string): Promise<T> {
     return data;
   } catch (error) {
     console.error(`API request failed for ${endpoint}:`, error);
-    throw error;
+    
+    // If fetch fails, try using XMLHttpRequest as fallback
+    console.log('Trying XMLHttpRequest fallback...');
+    try {
+      return await xmlHttpRequest(`${API_BASE_URL}${endpoint}`);
+    } catch (fallbackError) {
+      console.error('XMLHttpRequest fallback also failed:', fallbackError);
+      throw error; // Throw original error
+    }
   }
+}
+
+// Fallback using XMLHttpRequest
+function xmlHttpRequest<T>(url: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            console.log('XMLHttpRequest success:', data);
+            resolve(data);
+          } catch (parseError) {
+            reject(new Error(`Failed to parse response: ${parseError}`));
+          }
+        } else {
+          reject(new Error(`XMLHttpRequest failed: ${xhr.status} ${xhr.statusText}`));
+        }
+      }
+    };
+    
+    xhr.onerror = function() {
+      reject(new Error('XMLHttpRequest network error'));
+    };
+    
+    xhr.send();
+  });
 }
 
 // YouTube API service functions

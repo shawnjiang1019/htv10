@@ -21,6 +21,8 @@ export default defineConfig({
         popup: resolve(__dirname, 'popup.html'),
         // Content script
         content: resolve(__dirname, 'src/content.tsx'),
+        // Background script
+        background: resolve(__dirname, 'src/background.ts'),
       },
       output: {
         entryFileNames: (chunkInfo) => {

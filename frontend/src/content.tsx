@@ -80,6 +80,9 @@ async function injectPopup() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const videoId = urlParams.get("v") || "unknown";
+  
+  console.log('YouTube Transcript AI: Extracted video ID:', videoId);
+  console.log('YouTube Transcript AI: Current URL:', window.location.href);
 
   // Clean up existing elements
   const existingContainer = document.getElementById("yt-transcript-container");
@@ -206,6 +209,7 @@ async function injectPopup() {
   const updateInterval = setupLiveCheck();
   
   // Render main component
+  console.log('YouTube Transcript AI: Rendering TranscriptPopup with videoId:', videoId);
   currentRoot.render(
     <TranscriptPopup 
       videoId={videoId} 
