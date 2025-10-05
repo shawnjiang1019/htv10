@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from video_transcription.transcribe import router as vid_router
 from video_transcription.article_transcribe import router as article_router
 from agents_debate.debate_router import router as agent_router
