@@ -87,6 +87,56 @@ export const BiasAnalysisSection: React.FC<BiasAnalysisSectionProps> = ({
   </div>
 );
 
+interface AlternateLink {
+  title: string;
+  url: string;
+  source: string;
+  description: string;
+}
+
+interface AlternateLinksProps {
+  links: AlternateLink[];
+}
+
+export const AlternateLinksSection: React.FC<AlternateLinksProps> = ({ links }) => {
+  const handleLinkClick = (url: string) => {
+    window.open(url, '_blank');
+  };
+
+  return (
+    <div className="yt-transcript-section">
+      <div className="yt-transcript-section-header">
+        <h4>🔗 Unbiased Resources</h4>
+        <span className="yt-transcript-link-count">{links.length} sources</span>
+      </div>
+      <div className="yt-transcript-links">
+        {links.map((link, index) => (
+          <div 
+            key={index} 
+            className="yt-transcript-link-item" 
+            onClick={() => handleLinkClick(link.url)}
+          >
+            <div className="yt-transcript-link-header">
+              <a 
+                href={link.url} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="yt-transcript-link-title"
+              >
+                {link.title}
+              </a>
+              <span className="yt-transcript-link-source">{link.source}</span>
+            </div>
+            <div className="yt-transcript-link-description">
+              {link.description}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 interface PopupFooterProps {
   videoId: string;
 }

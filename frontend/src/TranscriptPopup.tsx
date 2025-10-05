@@ -6,7 +6,8 @@ import {
   LoadingState,
   SummarySection,
   BiasAnalysisSection,
-  PopupFooter
+  AlternateLinksSection,
+  PopupFooter,
 } from './components/transcript-popup/sections';
 import Timeline from './components/transcript-popup/Timeline';
 
@@ -123,8 +124,8 @@ export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClo
     );
   }
 
-  DUMMY_DATA
   useDummyData
+  DUMMY_TIMELINE_EVENTS
 
   const biasInfo = getBiasLevel(data?.bias_analysis?.bias_score ?? 0);
 
@@ -133,6 +134,9 @@ export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClo
       <PopupHeader onClose={onClose} />
       
       <div className="yt-transcript-content">
+
+        
+
         <SummarySection
           summary={data?.summary || 'No summary available'}
           biasLevel={biasInfo.level}
@@ -143,12 +147,16 @@ export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClo
           viewPoint={data?.bias_analysis?.view_point || 'None detected'}
           sentences={data?.bias_analysis?.sentences || []}
         />
-        
-        <Timeline 
+
+        <AlternateLinksSection
+          links={DUMMY_DATA.alternateLinks}
+        />
+
+        {/* <Timeline 
           events={DUMMY_TIMELINE_EVENTS}
           currentTime={250}
           onSeek={() => {alert(1)}}
-        />
+        /> */}
         <PopupFooter videoId={videoId} />
 
       </div>
