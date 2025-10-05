@@ -211,6 +211,41 @@ def parse_alternate_links_to_json(alternate_links_response):
         print(f"Error parsing alternate links to JSON: {e}")
         return []
 
+def parse_gemini_response_to_json(gemini_response):
+    """Parse Gemini response and extract JSON content"""
+    import json
+    
+    if not gemini_response:
+        return {"error": "No response received"}
+    
+    try:
+        response_text = gemini_response.strip()
+        
+        # Check if response is wrapped in markdown code blocks
+        if "```json" in response_text:
+            # Extract content between ```json and ```
+            start_marker = "```json"
+            end_marker = "```"
+            start_idx = response_text.find(start_marker)
+            if start_idx != -1:
+                start_idx += len(start_marker)
+                end_idx = response_text.find(end_marker, start_idx)
+                if end_idx != -1:
+                    response_text = response_text[start_idx:end_idx].strip()
+        
+        # Try to parse as JSON
+        try:
+            parsed_json = json.loads(response_text)
+            return parsed_json
+        except json.JSONDecodeError as json_error:
+            print(f"JSON decode error: {json_error}")
+            # If JSON parsing fails, return the raw text
+            return {"raw_response": response_text, "parse_error": str(json_error)}
+            
+    except Exception as e:
+        print(f"Error parsing Gemini response to JSON: {e}")
+        return {"error": f"Failed to parse response: {str(e)}", "raw_response": gemini_response}
+
 @router.get("/youtube-summary/{video_id}")
 def getYouTubeSummary(video_id: str):
     """Generate summary and alternate links for a YouTube video"""
@@ -248,17 +283,25 @@ def getYouTubeSummary(video_id: str):
 
 @router.get("/youtube-transcript/{video_id}")
 def getYouTubeTranscript(video_id: str):
-    """Pass fact-checking prompt to Gemini and return response"""
+    """Extract transcript and pass fact-checking prompt to Gemini"""
     try:
         print(f"\n=== Processing YouTube video: {video_id} ===")
+        
+        # Get the transcript first
+        transcript_obj = get_transcript(video_id=video_id)
+        transcript_text = transcript_obj.raw_text
         
         # Setup Gemini model
         model = setup_gemini()
         
-        # The comprehensive fact-checking prompt
-        prompt = """You are an expert, meticulous, and neutral fact-checker and bias analyst. Your primary goal is to provide a comprehensive, multi-modal, and objective analysis of the provided YouTube video content.
+        # The comprehensive fact-checking prompt with actual transcript
+        prompt = f"""You are an expert, meticulous, and neutral fact-checker and bias analyst. Your primary goal is to provide a comprehensive, multi-modal, and objective analysis of the provided YouTube video content.
 
-Extract Transcript & Metadata: Access the video at the provided link and extract the full transcript. Also extract the video title and channel name.
+- Video ID: {video_id}
+
+Transcript Content:
+{transcript_text}
+
 Initial Assessment: Identify the main_topic and assess the channel_source_credibility as 'High', 'Medium', 'Low', or 'Unknown', based on its public reputation and track record on this topic.
 Statement-by-Statement Analysis: Select key factual claims and arguments to analyze. The number of analyzed statements must be equal to or greater than the video's total runtime in minutes. For each statement, use the following framework:
 start_timestamp: The moment the statement begins in the video (e.g., "0:45").
@@ -270,15 +313,16 @@ emotional_tone: Rate the language as "Neutral," "Positive," "Negative," or "Sens
 reasoning_and_sources: Crucially, use a Chain-of-Thought process. Explain how the factuality classification was reached, citing counter-evidence or supporting information from verifiable, independent sources. Justify the logical fallacy and multimodal analysis if applicable.
 Final Bias Judgment: Use all the collected data (factuality, omissions, fallacies, tone, framing) to determine the overall total_bias_score on a scale of 0-10 (0 = completely neutral, 10 = extremely partisan/biased).
 Final Justification: Write a brief bias_justification_narrative to explain the score.
-Output: Provide the output ONLY in the JSON format detailed above. Do not output any additional text, explanation, or commentary outside of the requested JSON structure.
-
-Please analyze this YouTube video: https://www.youtube.com/watch?v=""" + video_id
+Output: Provide the output ONLY in the JSON format detailed above. Do not output any additional text, explanation, or commentary outside of the requested JSON structure."""
         
         # Generate response from Gemini
         response = model.generate_content(prompt)
         
-        print(f"Gemini response generated successfully")
-        return {"response": response.text}
+        # Parse the response to proper JSON format
+        parsed_response = parse_gemini_response_to_json(response.text)
+        
+        print(f"Gemini response generated and parsed successfully")
+        return parsed_response
         
     except Exception as e:
         print(f"Error in getYouTubeTranscript: {str(e)}")
