@@ -246,6 +246,30 @@ def parse_gemini_response_to_json(gemini_response):
         print(f"Error parsing Gemini response to JSON: {e}")
         return {"error": f"Failed to parse response: {str(e)}", "raw_response": gemini_response}
 
+def fact_check_claim(claim, model=None):
+    """Perform actual fact-checking on a specific claim"""
+    try:
+        if model is None:
+            model = setup_gemini()
+        
+        fact_check_prompt = f"""You are an expert fact-checker. Analyze this claim and provide a fact check result.
+
+Claim: "{claim}"
+
+Provide your analysis in this format:
+VERDICT: [VERIFIED/UNVERIFIED/MISLEADING]
+EXPLANATION: [Detailed explanation of why this is verified, unverified, or misleading]
+SOURCES: [List 2-3 credible sources that support your verdict]
+
+Be specific and cite actual facts, statistics, or events. Use your knowledge to provide accurate information."""
+        
+        response = model.generate_content(fact_check_prompt)
+        return response.text
+        
+    except Exception as e:
+        print(f"Error fact-checking claim: {e}")
+        return f"Error fact-checking: {str(e)}"
+
 def parse_fact_checks_response(gemini_response, video_id):
     """Parse Gemini response into FlashEvent format array"""
     import json
@@ -277,28 +301,50 @@ def parse_fact_checks_response(gemini_response, video_id):
             cleaned_fact_checks = []
             for i, fact_check in enumerate(fact_checks):
                 if isinstance(fact_check, dict):
-                    # Ensure all required fields are present with proper types
-                    url_field = str(fact_check.get("url", ""))
-                    
-                    # If URL is not a proper URL, use SerpAPI to find relevant sources
-                    if not url_field.startswith(("http://", "https://")):
-                        try:
-                            # Create a search query from the fact check content
-                            search_query = f"fact check {fact_check.get('content', '')[:100]}"
-                            search_results = search_web(search_query)
+                    # Always use SerpAPI to find real URLs instead of trusting Gemini's fake URLs
+                    try:
+                        # Create a search query from the fact check content
+                        content = fact_check.get('content', '')
+                        # Extract key terms from the content for better search
+                        search_query = f"fact check {content[:100]}"
+                        
+                        print(f"Searching for real URLs for: {search_query}")
+                        search_results = search_web(search_query)
+                        
+                        # Prioritize credible fact-checking sources
+                        credible_sources = []
+                        news_sources = []
+                        other_sources = []
+                        
+                        for result in search_results:
+                            url = result.get("url", "").lower()
+                            if any(domain in url for domain in ['snopes.com', 'politifact.com', 'factcheck.org', 'fullfact.org']):
+                                credible_sources.append(result)
+                            elif any(domain in url for domain in ['reuters.com', 'ap.org', 'bbc.com', 'washingtonpost.com', 'nytimes.com', 'cnn.com', 'npr.org']):
+                                news_sources.append(result)
+                            else:
+                                other_sources.append(result)
+                        
+                        # Use the best available source
+                        if credible_sources:
+                            url_field = credible_sources[0].get("url", "")
+                            print(f"Using credible source: {url_field}")
+                        elif news_sources:
+                            url_field = news_sources[0].get("url", "")
+                            print(f"Using news source: {url_field}")
+                        elif other_sources:
+                            url_field = other_sources[0].get("url", "")
+                            print(f"Using other source: {url_field}")
+                        else:
+                            # Fallback to Google search
+                            url_field = f"https://www.google.com/search?q={search_query.replace(' ', '+')}+fact+check"
+                            print(f"Using Google search fallback: {url_field}")
                             
-                            # Use the first valid URL from search results, or fallback to Google search
-                            if search_results and len(search_results) > 0:
-                                url_field = search_results[0].get("url", "")
-                            
-                            # If still no valid URL, create a Google search URL as fallback
-                            if not url_field.startswith(("http://", "https://")):
-                                url_field = f"https://www.google.com/search?q={search_query.replace(' ', '+')}"
-                        except Exception as e:
-                            print(f"Error using SerpAPI for fact check URL: {e}")
-                            # Fallback to Google search URL
-                            search_query = f"fact check {fact_check.get('content', '')[:50]}"
-                            url_field = f"https://www.google.com/search?q={search_query.replace(' ', '+')}"
+                    except Exception as e:
+                        print(f"Error using SerpAPI for fact check URL: {e}")
+                        # Fallback to Google search URL
+                        search_query = f"fact check {fact_check.get('content', '')[:50]}"
+                        url_field = f"https://www.google.com/search?q={search_query.replace(' ', '+')}+fact+check"
                     
                     cleaned_fact_check = {
                         "id": fact_check.get("id", f"{video_id}_{fact_check.get('timestamp', 0)}_{i}"),
@@ -383,9 +429,9 @@ For each factual claim you find that needs fact-checking, return a JSON array wi
 {{
     "id": "unique_string_id",
     "timestamp": number_in_seconds,
-    "content": "fact_check_description_here",
+    "content": "FACT_CHECK_RESULT: [VERIFIED/UNVERIFIED/MISLEADING] - Detailed fact check result with sources",
     "duration": number_in_seconds,
-    "url": "actual_http_or_https_url_here"
+    "url": "placeholder_url"
 }}
 
 Requirements:
@@ -393,11 +439,15 @@ Requirements:
 - Each object must have exactly these 5 fields: id, timestamp, content, duration, url
 - id should be unique (use video_id + timestamp + index)
 - timestamp should be the time in seconds when the claim is made
-- content should describe what needs fact-checking
-- duration should be how long to show the fact check (3-5 seconds)
-- url MUST be a valid HTTP/HTTPS URL (e.g., https://www.google.com/search?q=your+search+terms)
+- content should contain the actual fact check result, not just a description
+- Format content as: "FACT_CHECK_RESULT: [STATUS] - [Detailed explanation with specific facts and sources]"
+- Status should be: VERIFIED (claim is accurate), UNVERIFIED (insufficient evidence), or MISLEADING (claim is false/misleading)
+- duration should be how long to show the fact check (5-8 seconds for detailed results)
+- url should be "placeholder_url" - we will replace this with real URLs from fact-checking websites
+- Use your knowledge to provide actual fact-checking, not just search suggestions
+- Focus on providing detailed, accurate fact checks in the content field
 
-Return maximum 10 fact checks. If no fact-checkable claims are found, return an empty array []."""
+Return maximum 8 fact checks. If no fact-checkable claims are found, return an empty array []."""
         
         # Generate response from Gemini
         response = model.generate_content(prompt)
