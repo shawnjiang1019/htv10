@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Transcript AI - AI-Powered Video Analysis</title>
+    <meta name="description" content="Get AI-powered transcripts, summaries, and bias detection for YouTube videos. Install our Chrome extension for instant video analysis.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'hsl(var(--background))',
+                        foreground: 'hsl(var(--foreground))',
+                        card: 'hsl(var(--card))',
+                        'card-foreground': 'hsl(var(--card-foreground))',
+                        popover: 'hsl(var(--popover))',
+                        'popover-foreground': 'hsl(var(--popover-foreground))',
+                        primary: 'hsl(var(--primary))',
+                        'primary-foreground': 'hsl(var(--primary-foreground))',
+                        secondary: 'hsl(var(--secondary))',
+                        'secondary-foreground': 'hsl(var(--secondary-foreground))',
+                        muted: 'hsl(var(--muted))',
+                        'muted-foreground': 'hsl(var(--muted-foreground))',
+                        accent: 'hsl(var(--accent))',
+                        'accent-foreground': 'hsl(var(--accent-foreground))',
+                        destructive: 'hsl(var(--destructive))',
+                        border: 'hsl(var(--border))',
+                        input: 'hsl(var(--input))',
+                        ring: 'hsl(var(--ring))',
+                        chart: {
+                            1: 'hsl(var(--chart-1))',
+                            2: 'hsl(var(--chart-2))',
+                            3: 'hsl(var(--chart-3))',
+                            4: 'hsl(var(--chart-4))',
+                            5: 'hsl(var(--chart-5))',
+                        }
+                    },
+                    borderRadius: {
+                        'lg': 'var(--radius)',
+                        'md': 'calc(var(--radius) - 2px)',
+                        'sm': 'calc(var(--radius) - 4px)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --radius: 0.625rem;
+            --background: 0 0% 100%;
+            --foreground: 0 0% 3.9%;
+            --card: 0 0% 100%;
+            --card-foreground: 0 0% 3.9%;
+            --popover: 0 0% 100%;
+            --popover-foreground: 0 0% 3.9%;
+            --primary: 0 0% 9%;
+            --primary-foreground: 0 0% 98%;
+            --secondary: 0 0% 96.1%;
+            --secondary-foreground: 0 0% 9%;
+            --muted: 0 0% 96.1%;
+            --muted-foreground: 0 0% 45.1%;
+            --accent: 0 0% 96.1%;
+            --accent-foreground: 0 0% 9%;
+            --destructive: 0 84.2% 60.2%;
+            --border: 0 0% 89.8%;
+            --input: 0 0% 89.8%;
+            --ring: 0 0% 3.9%;
+            --chart-1: 12 76% 61%;
+            --chart-2: 173 58% 39%;
+            --chart-3: 197 37% 24%;
+            --chart-4: 43 74% 66%;
+            --chart-5: 27 87% 67%;
+        }
+
+        .dark {
+            --background: 0 0% 3.9%;
+            --foreground: 0 0% 98%;
+            --card: 0 0% 3.9%;
+            --card-foreground: 0 0% 98%;
+            --popover: 0 0% 3.9%;
+            --popover-foreground: 0 0% 98%;
+            --primary: 0 0% 98%;
+            --primary-foreground: 0 0% 9%;
+            --secondary: 0 0% 14.9%;
+            --secondary-foreground: 0 0% 98%;
+            --muted: 0 0% 14.9%;
+            --muted-foreground: 0 0% 63.9%;
+            --accent: 0 0% 14.9%;
+            --accent-foreground: 0 0% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --border: 0 0% 14.9%;
+            --input: 0 0% 14.9%;
+            --ring: 0 0% 83.1%;
+            --chart-1: 220 70% 50%;
+            --chart-2: 160 60% 45%;
+            --chart-3: 30 80% 55%;
+            --chart-4: 280 65% 60%;
+            --chart-5: 340 75% 55%;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 20%, #312e81 40%, #581c87 60%, #7c3aed 80%, #0f172a 100%);
+        }
+        .feature-card {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .feature-card:hover {
+            background: rgba(30, 41, 59, 0.5);
+        }
+        .cta-gradient {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        }
+        .cta-gradient:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%);
+        }
+        .step-gradient {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        }
+        .section-bg {
+            background: rgba(30, 41, 59, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .demo-section {
+            background: rgba(30, 41, 59, 0.15);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 via-purple-900 to-slate-900 text-white">
+    <!-- Navigation -->
+    <nav class="border-b border-slate-600 bg-slate-800/50 backdrop-blur-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-white">BiasBuddy</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-gray-300 hover:text-white transition-colors">Features</a>
+                    <a href="#how-it-works" class="text-gray-300 hover:text-white transition-colors">How it Works</a>
+                    <a href="#install" class="text-gray-300 hover:text-white transition-colors">Install</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative overflow-hidden py-12 lg:py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-3xl md:text-5xl font-bold text-white mb-4">
+                    BiasBuddy
+                </h1>
+                <p class="text-lg md:text-xl text-gray-300 mb-6 max-w-3xl mx-auto">
+                    Get AI-powered transcripts, summaries, and bias analysis for any YouTube video
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="#install" class="cta-gradient text-white px-8 py-4 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+                        🚀 Download Extension
+                    </a>
+                    <a href="#features" class="border border-white text-white hover:bg-white hover:text-gray-900 px-8 py-4 rounded-lg font-semibold transition-colors">
+                        📖 Installation Guide
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-12 section-bg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-10">
+                <h2 class="text-2xl md:text-3xl font-bold text-white mb-3">
+                    Powerful AI Features
+                </h2>
+                <p class="text-lg text-gray-300">
+                    Everything you need to understand YouTube content better
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Feature 1 -->
+                <div class="feature-card rounded-xl p-5 transition-colors">
+                    <div class="text-center">
+                        <div class="text-3xl mb-3">🎯</div>
+                        <h3 class="text-lg font-semibold text-white mb-2">Bias Detection</h3>
+                        <p class="text-gray-300 text-sm">
+                            Analyze content for bias and viewpoint detection with confidence scores
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card rounded-xl p-5 transition-colors">
+                    <div class="text-center">
+                        <div class="text-3xl mb-3">⚡</div>
+                        <h3 class="text-lg font-semibold text-white mb-2">Real-time Analysis</h3>
+                        <p class="text-gray-300 text-sm">
+                            Instant transcript analysis as soon as you visit a YouTube video
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card rounded-xl p-5 transition-colors">
+                    <div class="text-center">
+                        <div class="text-3xl mb-3">🔗</div>
+                        <h3 class="text-lg font-semibold text-white mb-2">Alternative Sources</h3>
+                        <p class="text-gray-300 text-sm">
+                            Discover unbiased alternative resources and perspectives
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-card rounded-xl p-5 transition-colors">
+                    <div class="text-center">
+                        <div class="text-3xl mb-3">🤖</div>
+                        <h3 class="text-lg font-semibold text-white mb-2">AI Debate Mode</h3>
+                        <p class="text-gray-300 text-sm">
+                            Watch two AI agents debate different perspectives on any topic
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-10">
+                <h2 class="text-2xl md:text-3xl font-bold text-white mb-3">
+                    How It Works
+                </h2>
+                <p class="text-lg text-gray-300">
+                    Simple, fast, and powerful
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="step-gradient w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
+                        1
+                    </div>
+                    <h3 class="text-lg font-semibold text-white mb-2">Visit YouTube</h3>
+                    <p class="text-gray-300 text-sm">
+                        Go to any YouTube video page
+                    </p>
+                </div>
+
+                <div class="text-center">
+                    <div class="step-gradient w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
+                        2
+                    </div>
+                    <h3 class="text-lg font-semibold text-white mb-2">Automatic Analysis</h3>
+                    <p class="text-gray-300 text-sm">
+                        Extension automatically appears and analyzes the video
+                    </p>
+                </div>
+
+                <div class="text-center">
+                    <div class="step-gradient w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
+                        3
+                    </div>
+                    <h3 class="text-lg font-semibold text-white mb-2">Get Insights</h3>
+                    <p class="text-gray-300 text-sm">
+                        View summary, bias analysis, and alternative sources
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="py-20 demo-section">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">See It In Action</h2>
+                <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+                    Watch how our extension seamlessly integrates with YouTube
+                </p>
+            </div>
+
+            <div class="feature-card rounded-xl p-8">
+                <div class="aspect-video bg-slate-800/50 rounded-lg flex items-center justify-center mb-6">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </div>
+                        <p class="text-gray-300">Extension Demo Video</p>
+                        <p class="text-sm text-gray-400 mt-2">Coming Soon</p>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-white">What You'll See:</h3>
+                        <ul class="space-y-2 text-gray-300">
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                AI-generated transcript sidebar
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Bias analysis with confidence scores
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Smart content summaries
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Alternative source recommendations
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-white">Key Benefits:</h3>
+                        <ul class="space-y-2 text-gray-300">
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Instant analysis on any video
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                No data collection or privacy concerns
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Works with all YouTube content
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Completely free to use
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="install" class="py-12 section-bg">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-10">
+                <h2 class="text-2xl md:text-3xl font-bold text-white mb-3">
+                    Installation Guide
+                </h2>
+                <p class="text-lg text-gray-300">
+                    Get started in just a few simple steps
+                </p>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="flex items-start space-x-4">
+                    <div class="step-gradient w-7 h-7 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 mt-1 text-sm">
+                        1
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-1">Download the Extension</h3>
+                        <p class="text-gray-300 text-sm">
+                            Click the "Download Extension" button above to get the extension files
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="step-gradient w-7 h-7 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 mt-1 text-sm">
+                        2
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-1">Open Chrome Extensions</h3>
+                        <p class="text-gray-300 text-sm">
+                            Go to <code class="bg-slate-700 px-2 py-1 rounded text-blue-300 text-xs">chrome://extensions/</code> in your Chrome browser
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="step-gradient w-7 h-7 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 mt-1 text-sm">
+                        3
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-1">Enable Developer Mode</h3>
+                        <p class="text-gray-300 text-sm">
+                            Toggle the "Developer mode" switch in the top right corner
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="step-gradient w-7 h-7 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 mt-1 text-sm">
+                        4
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-1">Load the Extension</h3>
+                        <p class="text-gray-300 text-sm">
+                            Click "Load unpacked" and select the extracted extension folder
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="step-gradient w-7 h-7 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 mt-1 text-sm">
+                        5
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-1">Start Using</h3>
+                        <p class="text-gray-300 text-sm">
+                            Visit any YouTube video and see the AI analysis popup appear automatically!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-12">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-3">
+                Ready to Get Started?
+            </h2>
+            <p class="text-lg text-gray-300 mb-6">
+                Download the extension now and start analyzing YouTube videos with AI
+            </p>
+            <a href="#" class="cta-gradient text-white px-10 py-3 text-lg font-semibold rounded-lg hover:opacity-90 transition-opacity inline-block">
+                🚀 Download Now - It's Free!
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <p class="text-gray-400 text-sm">
+                    © 2025 BiasBudy. Built with ❤️ for better content understanding.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        
+        // Check for saved theme preference or default to light mode
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+            html.classList.add('dark');
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add scroll effect to navigation
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 100) {
+                nav.classList.add('bg-card/80');
+            } else {
+                nav.classList.remove('bg-card/80');
+            }
+        });
+    </script>
+</body>
+</html>
