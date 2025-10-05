@@ -14,6 +14,8 @@ interface Message {
   sender: 'agent1' | 'agent2';
 }
 
+
+
 const debate = () => {
     const [messages, setMessages] = useState<Message[]>([]);
 
