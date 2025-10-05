@@ -106,7 +106,7 @@ class DebateService:
         genai.configure(api_key=api_key)
         
         self.model = genai.GenerativeModel('gemini-2.5-pro')
-        self.pinecone_db = VectorDB("rag-debate-index")
+        self.pinecone_db = VectorDB("article-analyses")
 
         self.pro_agent = RAGDebateAgent(
             name="Proponent",
