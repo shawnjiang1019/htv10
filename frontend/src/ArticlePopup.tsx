@@ -1,10 +1,4 @@
-import React, { useEffect, useState } from 'react';
-
-
-interface ArticlePopupProps {
-  articleURL: string;
-  onClose: () => void;
-}
+import React from 'react';
 
 
 export interface AlternateLink {
@@ -20,8 +14,18 @@ export interface ArticleSummary {
   alternateLinks: AlternateLink[];
 }
 
-export const ArticlePopUp: React.FC<TranscriptPopupProps> = ({articleURL, onClose}) => {
-    const [data, setData] = useState<YouTubeSummary | null>(null);
-
+interface ArticlePopupProps {
+  articleURL: string;
+  onClose: () => void;
 }
+
+export const ArticlePopUp: React.FC<ArticlePopupProps> = ({ articleURL, onClose }) => {
+    return (
+        <div>
+            <h3>Article Analysis</h3>
+            <p>URL: {articleURL}</p>
+            <button onClick={onClose}>Close</button>
+        </div>
+    );
+};
 

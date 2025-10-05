@@ -117,9 +117,9 @@ async function injectPopup() {
         id: "1",
         timestamp: 5,
         content: "🤖 Machine Learning is a subset of AI - this foundational concept is crucial for understanding the field",
-        type: "info" as const,
         duration: 4,
-        category: "Key Concept"
+        category: "Key Concept",
+        url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
       }
     ],
     timeline: [

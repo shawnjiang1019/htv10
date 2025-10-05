@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 
 interface FlashEvent {
     id: string;
-    timestamp: number;  // in seconds
+    timestamp: number;
     content: string;
-    duration?: number;  // how long to show the flash in seconds, default could be 3
-    type?: 'info' | 'warning' | 'error';  // for different styles of flashes
-    category: string;  // e.g., "Bias Detection", "Fact Check", "Key Concept"
+    duration: number;
+    url: string;
 }
 
 interface LiveCheckProps {
@@ -43,19 +42,23 @@ export default function LiveCheck({ events, currentTime }: LiveCheckProps) {
                     {activeFlashes.map((flash) => (
                         <div 
                             key={flash.id}
-                            className={`livecheck-flash ${flash.type || 'info'}`}
+                            className="livecheck-flash"
                             style={{
                                 animation: `flashFade ${flash.duration || 3}s ease-in-out`
                             }}
                         >
                             <div className="livecheck-flash-content">
-                                {flash.content}
+                                <span style={{ color: 'red', fontWeight: 'bold' }}>FACT CHECK:</span> {flash.content}
                             </div>
                             <div className="livecheck-meta">
-                                <span className="livecheck-category">
-                                    {flash.category}
-                                </span>
-                                <span>{flash.type?.toUpperCase()}</span>
+                                <a 
+                                    href={flash.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ color: '#2563eb' }}
+                                >
+                                    View Source
+                                </a>
                             </div>
                         </div>
                     ))}
