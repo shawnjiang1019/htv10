@@ -246,6 +246,85 @@ def parse_gemini_response_to_json(gemini_response):
         print(f"Error parsing Gemini response to JSON: {e}")
         return {"error": f"Failed to parse response: {str(e)}", "raw_response": gemini_response}
 
+def parse_fact_checks_response(gemini_response, video_id):
+    """Parse Gemini response into FlashEvent format array"""
+    import json
+    import uuid
+    
+    if not gemini_response:
+        return []
+    
+    try:
+        response_text = gemini_response.strip()
+        
+        # Check if response is wrapped in markdown code blocks
+        if "```json" in response_text:
+            # Extract content between ```json and ```
+            start_marker = "```json"
+            end_marker = "```"
+            start_idx = response_text.find(start_marker)
+            if start_idx != -1:
+                start_idx += len(start_marker)
+                end_idx = response_text.find(end_marker, start_idx)
+                if end_idx != -1:
+                    response_text = response_text[start_idx:end_idx].strip()
+        
+        # Try to parse as JSON array
+        try:
+            fact_checks = json.loads(response_text)
+            
+            # Validate and clean up the fact checks
+            cleaned_fact_checks = []
+            for i, fact_check in enumerate(fact_checks):
+                if isinstance(fact_check, dict):
+                    # Ensure all required fields are present with proper types
+                    url_field = str(fact_check.get("url", ""))
+                    
+                    # If URL is not a proper URL, use SerpAPI to find relevant sources
+                    if not url_field.startswith(("http://", "https://")):
+                        try:
+                            # Create a search query from the fact check content
+                            search_query = f"fact check {fact_check.get('content', '')[:100]}"
+                            search_results = search_web(search_query)
+                            
+                            # Use the first valid URL from search results, or fallback to Google search
+                            if search_results and len(search_results) > 0:
+                                url_field = search_results[0].get("url", "")
+                            
+                            # If still no valid URL, create a Google search URL as fallback
+                            if not url_field.startswith(("http://", "https://")):
+                                url_field = f"https://www.google.com/search?q={search_query.replace(' ', '+')}"
+                        except Exception as e:
+                            print(f"Error using SerpAPI for fact check URL: {e}")
+                            # Fallback to Google search URL
+                            search_query = f"fact check {fact_check.get('content', '')[:50]}"
+                            url_field = f"https://www.google.com/search?q={search_query.replace(' ', '+')}"
+                    
+                    cleaned_fact_check = {
+                        "id": fact_check.get("id", f"{video_id}_{fact_check.get('timestamp', 0)}_{i}"),
+                        "timestamp": int(float(fact_check.get("timestamp", 0))),
+                        "content": str(fact_check.get("content", "")),
+                        "duration": int(float(fact_check.get("duration", 3))),
+                        "url": url_field
+                    }
+                    
+                    # Validate required fields
+                    if (cleaned_fact_check["content"] and 
+                        cleaned_fact_check["timestamp"] >= 0 and 
+                        cleaned_fact_check["duration"] > 0):
+                        cleaned_fact_checks.append(cleaned_fact_check)
+            
+            return cleaned_fact_checks
+            
+        except json.JSONDecodeError as json_error:
+            print(f"JSON decode error: {json_error}")
+            print(f"Response text: {response_text}")
+            return []
+            
+    except Exception as e:
+        print(f"Error parsing fact checks response: {e}")
+        return []
+
 @router.get("/youtube-summary/{video_id}")
 def getYouTubeSummary(video_id: str):
     """Generate summary and alternate links for a YouTube video"""
@@ -283,7 +362,7 @@ def getYouTubeSummary(video_id: str):
 
 @router.get("/youtube-transcript/{video_id}")
 def getYouTubeTranscript(video_id: str):
-    """Extract transcript and pass fact-checking prompt to Gemini"""
+    """Extract transcript and return fact checks in FlashEvent format"""
     try:
         print(f"\n=== Processing YouTube video: {video_id} ===")
         
@@ -294,42 +373,44 @@ def getYouTubeTranscript(video_id: str):
         # Setup Gemini model
         model = setup_gemini()
         
-        # The comprehensive fact-checking prompt with actual transcript
-        prompt = f"""You are an expert, meticulous, and neutral fact-checker and bias analyst. Your primary goal is to provide a comprehensive, multi-modal, and objective analysis of the provided YouTube video content.
+        # The fact-checking prompt that returns FlashEvent format
+        prompt = f"""You are an expert fact-checker. Analyze this YouTube video transcript and identify factual claims that need verification.
 
-- Video ID: {video_id}
+Video ID: {video_id}
+Transcript: {transcript_text}
 
-Transcript Content:
-{transcript_text}
+For each factual claim you find that needs fact-checking, return a JSON array with objects in this EXACT format:
+{{
+    "id": "unique_string_id",
+    "timestamp": number_in_seconds,
+    "content": "fact_check_description_here",
+    "duration": number_in_seconds,
+    "url": "actual_http_or_https_url_here"
+}}
 
-Initial Assessment: Identify the main_topic and assess the channel_source_credibility as 'High', 'Medium', 'Low', or 'Unknown', based on its public reputation and track record on this topic.
-Statement-by-Statement Analysis: Select key factual claims and arguments to analyze. The number of analyzed statements must be equal to or greater than the video's total runtime in minutes. For each statement, use the following framework:
-start_timestamp: The moment the statement begins in the video (e.g., "0:45").
-sentence: The exact quote of the statement.
-factuality_classification: Classify as "correct," "mostly correct," "mostly incorrect," "incorrect," "misleading," or "subjective."
-context_omission: Identify if crucial context is missing and classify as "None," "Minor," or "Major."
-logical_fallacy: Identify any committed logical fallacy from the following list (or similar): Ad Hominem, Straw Man, Appeal to Emotion, False Dichotomy, Slippery Slope, Anecdotal Evidence. If none, state "None."
-emotional_tone: Rate the language as "Neutral," "Positive," "Negative," or "Sensationalist."
-reasoning_and_sources: Crucially, use a Chain-of-Thought process. Explain how the factuality classification was reached, citing counter-evidence or supporting information from verifiable, independent sources. Justify the logical fallacy and multimodal analysis if applicable.
-Final Bias Judgment: Use all the collected data (factuality, omissions, fallacies, tone, framing) to determine the overall total_bias_score on a scale of 0-10 (0 = completely neutral, 10 = extremely partisan/biased).
-Final Justification: Write a brief bias_justification_narrative to explain the score.
-Output: Provide the output ONLY in the JSON format detailed above. Do not output any additional text, explanation, or commentary outside of the requested JSON structure."""
+Requirements:
+- Return ONLY a JSON array of fact check objects
+- Each object must have exactly these 5 fields: id, timestamp, content, duration, url
+- id should be unique (use video_id + timestamp + index)
+- timestamp should be the time in seconds when the claim is made
+- content should describe what needs fact-checking
+- duration should be how long to show the fact check (3-5 seconds)
+- url MUST be a valid HTTP/HTTPS URL (e.g., https://www.google.com/search?q=your+search+terms)
+
+Return maximum 10 fact checks. If no fact-checkable claims are found, return an empty array []."""
         
         # Generate response from Gemini
         response = model.generate_content(prompt)
         
-        # Parse the response to proper JSON format
-        parsed_response = parse_gemini_response_to_json(response.text)
+        # Parse the response to get FlashEvent array
+        fact_checks = parse_fact_checks_response(response.text, video_id)
         
-        print(f"Gemini response generated and parsed successfully")
-        return parsed_response
+        print(f"Generated {len(fact_checks)} fact checks successfully")
+        return fact_checks
         
     except Exception as e:
         print(f"Error in getYouTubeTranscript: {str(e)}")
-        return {
-            "error": f"Error processing YouTube video: {str(e)}",
-            "video_id": video_id,
-        }
+        return []
 
 @router.get("/test-gemini")
 def testGemini():
