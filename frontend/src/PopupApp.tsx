@@ -31,6 +31,18 @@ const PopupApp: React.FC = () => {
     setShowArticlePopup(false);
   };
 
+  const handleOpenDebate = async () => {
+    try{
+      await chrome.tabs.create({
+        url: 'http://localhost:5173/debate',
+        active: true
+      });
+    } catch(error){
+      console.error('error opening the debate page:', error);
+    }
+  }
+
+
   if (showArticlePopup) {
     return (
       <ArticlePopup 
@@ -57,16 +69,6 @@ const PopupApp: React.FC = () => {
         >
           Analyze Current Page
         </button>
-
-        <div className="instructions">
-          <h3>How to use:</h3>
-          <ol>
-            <li><strong>YouTube:</strong> Popup appears automatically on video pages</li>
-            <li><strong>Articles:</strong> Click button above to analyze</li>
-            <li>View summary and alternative perspectives</li>
-            <li>Click × to close the popup</li>
-          </ol>
-        </div>
         
         <div className={`status ${isYouTube ? 'success' : 'success'}`}>
           {isYouTube 
@@ -76,9 +78,9 @@ const PopupApp: React.FC = () => {
 
         <button 
           className="action-button"
-          onClick={() => setShowModal(true)}
+          onClick={handleOpenDebate}
         >
-          Open Settings
+          Open Debate
         </button>
       </div>
 
