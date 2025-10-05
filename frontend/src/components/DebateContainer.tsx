@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
-import { useWebSocket } from '../hooks/useWebSocket'
 import { DebateInput } from './DebateInput'
 import { MessageDisplay } from './MessageDisplay'
+
 
 interface DebateMessage {
   speaker: 'pro' | 'con';
@@ -10,7 +10,8 @@ interface DebateMessage {
   round?: number;
 }
 
-interface WebSocketMessage {
+
+interface StreamMessage {
   type: 'message' | 'complete' | 'error' | 'start';
   speaker?: 'pro' | 'con';
   message?: string;
@@ -25,6 +26,7 @@ interface WebSocketMessage {
   }>;
 }
 
+
 export const DebateContainer = () => {
   const [prompt, setPrompt] = useState<string>("");
   const [messages, setMessages] = useState<DebateMessage[]>([]);
@@ -32,15 +34,20 @@ export const DebateContainer = () => {
   const [debateStarted, setDebateStarted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debateCompleted, setDebateCompleted] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
 
-  // WebSocket message handler
-  const handleWebSocketMessage = useCallback((data: WebSocketMessage) => {
-    console.log('Received WebSocket message:', data);
+
+  // Stream message handler
+  const handleStreamMessage = useCallback((data: StreamMessage) => {
+    console.log('Received stream message:', data);
+
 
     switch (data.type) {
         case 'start':
         console.log('Debate started for:', data.claim);
+        setIsConnected(true);
         break;
+
 
         case 'message':
         console.log('Processing message:', data);
@@ -51,19 +58,21 @@ export const DebateContainer = () => {
             round: data.round,
             timestamp: data.timestamp || new Date().toISOString()
             };
-            
+           
             console.log('Adding message to state:', newMessage);
             setMessages(prev => [...prev, newMessage]);
         } else {
-            console.warn('Missing speaker or message in WebSocket data:', data);
+            console.warn('Missing speaker or message in stream data:', data);
         }
         break;
+
 
         case 'complete':
         console.log('Debate completed!', data);
         setLoading(false);
         setDebateCompleted(true);
-        
+        setIsConnected(false);
+       
         // Process the conversation_history from the complete message
         if (data.conversation_history && Array.isArray(data.conversation_history)) {
             const formattedMessages: DebateMessage[] = data.conversation_history.map((entry: any) => ({
@@ -72,50 +81,44 @@ export const DebateContainer = () => {
             round: entry.round,
             timestamp: new Date().toISOString() // Add timestamp if not present
             }));
-            
+           
             console.log('Setting messages from conversation_history:', formattedMessages);
             setMessages(formattedMessages);
         }
         break;
 
+
         case 'error':
-        console.error('WebSocket error:', data.message);
+        console.error('Stream error:', data.message);
         setError(data.message || 'An error occurred');
         setLoading(false);
+        setIsConnected(false);
         break;
     }
     }, []);
 
-  // WebSocket error handler
-  const handleWebSocketError = useCallback((event: Event) => {
-    console.error('WebSocket error:', event);
-    setError('Connection error occurred');
-    setLoading(false);
-  }, []);
 
-  // WebSocket close handler
-  const handleWebSocketClose = useCallback(() => {
-    console.log('WebSocket connection closed');
-    if (loading) {
-      setError('Connection was closed unexpectedly');
-      setLoading(false);
+  // Parse Server-Sent Events data
+  const parseSSEData = (data: string): StreamMessage | null => {
+    try {
+      // Remove "data: " prefix and parse JSON
+      const jsonData = data.replace(/^data: /, '').trim();
+      if (jsonData) {
+        return JSON.parse(jsonData);
+      }
+    } catch (error) {
+      console.error('Error parsing SSE data:', error);
     }
-  }, [loading]);
+    return null;
+  };
 
-  // Initialize WebSocket
-  const { isConnected, connect, disconnect, sendMessage } = useWebSocket({
-    url: 'ws://127.0.0.1:8080/debate/run-ws',
-    onMessage: handleWebSocketMessage,
-    onError: handleWebSocketError,
-    onClose: handleWebSocketClose,
-    onOpen: () => console.log('WebSocket connected')
-  });
 
-  const startDebateWithWebSocket = async () => {
+  const startDebateWithStreaming = async () => {
     if (!prompt || prompt.trim() === "") {
       alert("Please enter a topic first!");
       return;
     }
+
 
     setLoading(true);
     setError(null);
@@ -123,54 +126,11 @@ export const DebateContainer = () => {
     setDebateCompleted(false);
     setMessages([]);
 
+
     try {
-      // Connect to WebSocket and wait for connection
-      connect();
-      
-      // Wait longer for connection to establish and then check connection status
-      setTimeout(() => {
-        console.log('WebSocket connection status:', isConnected);
-        
-        // Try to send message or fall back to HTTP
-        const sendWebSocketMessage = () => {
-          console.log('Sending WebSocket message for:', prompt);
-          sendMessage({
-            claim: prompt,
-            max_rounds: 4,
-            include_audio: false,
-            pro_voice: "Rachel",
-            con_voice: "Adam"
-          });
-        };
-
-        if (isConnected) {
-          sendWebSocketMessage();
-        } else {
-          // Wait a bit more or fall back to HTTP
-          console.log('WebSocket not connected, trying fallback in 1 second');
-          setTimeout(() => {
-            if (isConnected) {
-              sendWebSocketMessage();
-            } else {
-              console.log('WebSocket still not connected, falling back to HTTP');
-              fallbackToHTTP();
-            }
-          }, 1000);
-        }
-      }, 500);
-
-    } catch (error) {
-      console.error("Error starting WebSocket debate:", error);
-      fallbackToHTTP();
-    }
-  };
-
-  // Fallback to original HTTP method
-  const fallbackToHTTP = async () => {
-    try {
-      console.log("Using HTTP fallback for:", prompt);
-      
-      const response = await fetch('http://127.0.0.1:8080/debate/run', {
+      console.log('Starting streaming debate for:', prompt);
+     
+      const response = await fetch('http://127.0.0.1:8000/debate/run-stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,26 +144,58 @@ export const DebateContainer = () => {
         })
       });
 
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      if (data.success) {
-        setMessages(data.conversation_history);
-        setDebateCompleted(true);
-      } else {
-        throw new Error("Debate was not successful");
+
+      if (!response.body) {
+        throw new Error('No response body');
       }
 
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+         
+          if (done) {
+            console.log('Stream completed');
+            break;
+          }
+
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+         
+          for (const line of lines) {
+            if (line.trim() && line.startsWith('data: ')) {
+              const message = parseSSEData(line);
+              if (message) {
+                handleStreamMessage(message);
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+
     } catch (error) {
-      console.error("Error with HTTP fallback:", error);
+      console.error("Error with streaming debate:", error);
       setError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
       setLoading(false);
+      setIsConnected(false);
     }
   };
+
+
+
 
   const resetDebate = () => {
     setMessages([]);
@@ -212,8 +204,9 @@ export const DebateContainer = () => {
     setError(null);
     setPrompt("");
     setLoading(false);
-    disconnect();
+    setIsConnected(false);
   };
+
 
   return (
     <div className="m-0 p-0 w-full min-h-screen">
@@ -226,10 +219,10 @@ export const DebateContainer = () => {
         debateCompleted={debateCompleted}
         error={error}
         messagesCount={messages.length}
-        onStartDebate={startDebateWithWebSocket}
+        onStartDebate={startDebateWithStreaming}
         onResetDebate={resetDebate}
       />
-      
+     
       <MessageDisplay
         prompt={prompt}
         messages={messages}

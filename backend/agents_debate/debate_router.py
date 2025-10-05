@@ -1,10 +1,15 @@
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional
+import json
+import asyncio
 from .debate_service import debate_service
 from .elevens_labs import stop_audio, pause_audio, resume_audio
 
+
 router = APIRouter()
+
 
 class DebateRequest(BaseModel):
     claim: str
@@ -18,8 +23,10 @@ class DebateResponse(BaseModel):
     conversation_history: List[Dict]
     success: bool    
 
+
 @router.post("/run", response_model=DebateResponse)
 async def run_debate(request: DebateRequest):
+
 
     try:
         result = debate_service.run_debate(
@@ -30,15 +37,17 @@ async def run_debate(request: DebateRequest):
             con_voice=request.con_voice
         )
 
+
         return DebateResponse(
             claim=request.claim,
             total_exchanges=len(result['conversation_history']),
             conversation_history=result['conversation_history'],
             success=True
         )
-        
+       
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/audio/stop")
 async def stop_audio_playback():
@@ -49,6 +58,7 @@ async def stop_audio_playback():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/audio/pause")
 async def pause_audio_playback():
     """Pause currently playing audio"""
@@ -58,6 +68,7 @@ async def pause_audio_playback():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/audio/resume")
 async def resume_audio_playback():
     """Resume paused audio"""
@@ -66,21 +77,61 @@ async def resume_audio_playback():
         return {"message": "Audio resumed successfully", "success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
-    
+
+
+@router.post("/run-stream")
+async def run_debate_stream(request: DebateRequest):
+    """Run a debate with streaming responses using Server-Sent Events"""
+   
+    async def generate_stream():
+        try:
+            # Send initial start message
+            yield f"data: {json.dumps({'type': 'start', 'claim': request.claim})}\n\n"
+           
+            # Stream each message as it's generated
+            async for message in debate_service.run_debate_stream(
+                claim=request.claim,
+                max_rounds=request.max_rounds,
+                include_audio=request.include_audio,
+                pro_voice=request.pro_voice,
+                con_voice=request.con_voice
+            ):
+                yield f"data: {json.dumps(message)}\n\n"
+                # Small delay to prevent overwhelming the client
+                await asyncio.sleep(0.1)
+           
+        except Exception as e:
+            # Send error message
+            error_message = {
+                "type": "error",
+                "message": str(e)
+            }
+            yield f"data: {json.dumps(error_message)}\n\n"
+   
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/event-stream",
+        }
+    )
+
 
 @router.websocket("/run-ws")
 async def run_debate_websocket(websocket: WebSocket):
     await websocket.accept()
-    
+   
     try:
         request_data = await websocket.receive_json()
         request = DebateRequest(**request_data)
-        
+       
         await websocket.send_json({
             "type": "start",
             "claim": request.claim
         })
-        
+       
         # Stream each message as it's generated
         async for message in debate_service.run_debate_stream(
             claim=request.claim,
@@ -90,13 +141,13 @@ async def run_debate_websocket(websocket: WebSocket):
             con_voice=request.con_voice
         ):
             await websocket.send_json(message)
-        
+       
         await websocket.send_json({"type": "complete"})
-        
+       
     except WebSocketDisconnect:
         print("Client disconnected")
     except Exception as e:
         await websocket.send_json({
-            "type": "error", 
+            "type": "error",
             "message": str(e)
         })
