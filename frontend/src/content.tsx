@@ -4,6 +4,8 @@ import LiveCheck from './components/transcript-popup/LiveCheck';
 import Timeline from './components/transcript-popup/Timeline';
 import styles from './transcript-popup.css?inline';
 import componentStyles from './components/injection-styles.css?inline';
+import { youtubeApi } from './api/youtube-api';
+import type { FlashEvent } from './api/youtube-api';
 
 // Inject CSS into the page
 function injectStyles() {
@@ -111,35 +113,84 @@ async function injectPopup() {
   // Initialize video time tracking
   const videoTime = new VideoTimeTracker();
 
-  const DUMMY_EVENTS = {
-    flash: [
-      {
-        id: "1",
-        timestamp: 5,
-        content: "🤖 Machine Learning is a subset of AI - this foundational concept is crucial for understanding the field",
-        duration: 4,
-        category: "Key Concept",
-        url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  // State for fact checks and loading - using same pattern as TranscriptPopup
+  let flashEvents: FlashEvent[] = [];
+  let timelineEvents: Array<{
+    content: string;
+    start: number;
+    end: number;
+  }> = [];
+  let isLoading = true;
+
+  // Fetch fact checks from API - following same pattern as YouTube summary
+  const fetchFactChecks = async () => {
+    try {
+      console.log('Fetching fact checks for video:', videoId);
+      
+      // Check if video ID is valid
+      if (!videoId || videoId === 'unknown') {
+        throw new Error('Invalid video ID. Please make sure you are on a YouTube video page.');
       }
-    ],
-    timeline: [
-      {
-        content: "Introduction to AI concepts",
-        start: 0,
-        end: 135
-      },
-      {
-        content: "Neural Networks Deep Dive",
-        start: 135,
-        end: 342
-      },
-      {
-        content: "Real-world Applications",
-        start: 342,
-        end: 510
-      },
-    ]
+      
+      const factChecks = await youtubeApi.getFactChecks(videoId);
+      console.log('API response for fact checks:', factChecks);
+      
+      flashEvents = factChecks || [];
+      
+      // Create timeline events from flash events
+      timelineEvents = flashEvents.map((flash) => ({
+        content: flash.content,
+        start: flash.timestamp,
+        end: flash.timestamp + flash.duration
+      }));
+      
+      console.log('Loaded fact checks:', flashEvents.length);
+      console.log('Created timeline events:', timelineEvents.length);
+      
+      // Debug: Check if we have any events
+      if (flashEvents.length === 0) {
+        console.warn('No fact checks returned from API');
+        console.log('Adding test data for debugging...');
+        
+        // Add test data for debugging
+        flashEvents = [
+          {
+            id: "test_1",
+            timestamp: 10,
+            content: "This is a test fact check",
+            duration: 5,
+            url: "https://example.com"
+          },
+          {
+            id: "test_2", 
+            timestamp: 30,
+            content: "Another test fact check",
+            duration: 4,
+            url: "https://example.com"
+          }
+        ];
+        
+        timelineEvents = flashEvents.map((flash) => ({
+          content: flash.content,
+          start: flash.timestamp,
+          end: flash.timestamp + flash.duration
+        }));
+        
+        console.log('Added test data:', flashEvents);
+      } else {
+        console.log('First fact check:', flashEvents[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching fact checks:', error);
+      flashEvents = [];
+      timelineEvents = [];
+    } finally {
+      isLoading = false;
+    }
   };
+
+  // Start fetching fact checks (don't await, let it run async)
+  fetchFactChecks();
 
   // Setup LiveCheck rendering and interval management
   const setupLiveCheck = () => {    
@@ -150,11 +201,12 @@ async function injectPopup() {
       liveCheckRoot?.render(
         <div className="livecheck-container">
           <LiveCheck
-            events={DUMMY_EVENTS.flash}
+            events={flashEvents}
             currentTime={currentTime}
+            loading={isLoading}
           />
           <Timeline 
-            events={DUMMY_EVENTS.timeline}
+            events={timelineEvents}
             currentTime={currentTime}
             duration={videoDuration}
             onSeek={(time) => {
@@ -170,7 +222,17 @@ async function injectPopup() {
     renderComponents();
     
     // Update every second
-    return setInterval(renderComponents, 1000);
+    const intervalId = setInterval(renderComponents, 1000);
+    
+    // Also re-render when data changes (after API call completes)
+    const checkDataUpdate = setInterval(() => {
+      if (!isLoading) {
+        renderComponents();
+        clearInterval(checkDataUpdate);
+      }
+    }, 100);
+    
+    return intervalId;
   };
 
   const handleClose = () => {

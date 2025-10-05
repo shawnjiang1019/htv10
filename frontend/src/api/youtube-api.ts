@@ -6,7 +6,7 @@ export interface TranscriptData {
   sentences: string[];
   raw_text: string;
   summary: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 export interface BiasAnalysis {
@@ -34,6 +34,14 @@ export interface TranscriptWithTimestamps {
   time: number;
 }
 
+export interface FlashEvent {
+  id: string;
+  timestamp: number;
+  content: string;
+  duration: number;
+  url: string;
+}
+
 export interface CombinedData extends TranscriptData {
   bias_analysis: BiasAnalysis;
 }
@@ -52,9 +60,15 @@ async function apiRequest<T>(endpoint: string): Promise<T> {
       const videoId = endpoint.split('/').pop();
       console.log('Extracted video ID for background script:', videoId);
       
+      // Determine action based on endpoint
+      let action = 'fetchYouTubeSummary';
+      if (endpoint.includes('/youtube-transcript/')) {
+        action = 'fetchFactChecks';
+      }
+      
       return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage(
-          { action: 'fetchYouTubeSummary', videoId },
+          { action, videoId },
           (response) => {
             console.log('Chrome messaging response:', response);
             
@@ -160,6 +174,11 @@ export const youtubeApi = {
   async getYouTubeSummary(videoId: string): Promise<YouTubeSummary> {
     console.log('Making API request to:', `${API_BASE_URL}/youtube-summary/${videoId}`);
     return apiRequest<YouTubeSummary>(`/youtube-summary/${videoId}`);
+  },
+
+  // Get fact checks for real-time fact-checking
+  async getFactChecks(videoId: string): Promise<FlashEvent[]> {
+    return apiRequest<FlashEvent[]>(`/youtube-transcript/${videoId}`);
   },
 
   // Get transcript with timestamps for real-time fact-checking

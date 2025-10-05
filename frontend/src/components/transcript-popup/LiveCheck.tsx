@@ -11,9 +11,10 @@ interface FlashEvent {
 interface LiveCheckProps {
     events: FlashEvent[];
     currentTime: number;  // current video time in seconds
+    loading?: boolean;    // loading state
 }
 
-export default function LiveCheck({ events, currentTime }: LiveCheckProps) {
+export default function LiveCheck({ events, currentTime, loading = false }: LiveCheckProps) {
     const [activeFlashes, setActiveFlashes] = useState<FlashEvent[]>([]);
     
     // Check for events that should be shown based on currentTime
@@ -33,7 +34,12 @@ export default function LiveCheck({ events, currentTime }: LiveCheckProps) {
             <div className="livecheck-header">
                 📝 Live Notes
             </div>
-            {activeFlashes.length === 0 ? (
+            {loading ? (
+                <div className="livecheck-loading">
+                    <div className="spinner"></div>
+                    <p>Loading fact checks...</p>
+                </div>
+            ) : activeFlashes.length === 0 ? (
                 <div className="livecheck-empty">
                     No active notes at this time
                 </div>
