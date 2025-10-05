@@ -47,6 +47,7 @@ let liveCheckRoot: Root | null = null;
 // Class to handle video time tracking
 class VideoTimeTracker {
   private currentTime = 0;
+  private duration = 0;
   private interval: number;
 
   constructor() {
@@ -57,11 +58,16 @@ class VideoTimeTracker {
     const videoElement = document.querySelector<HTMLVideoElement>('video.html5-main-video');
     if (videoElement) {
       this.currentTime = videoElement.currentTime;
+      this.duration = videoElement.duration || 0;
     }
   }
 
   getCurrentTime() {
     return this.currentTime;
+  }
+
+  getDuration() {
+    return this.duration;
   }
 
   cleanup() {
@@ -143,6 +149,7 @@ async function injectPopup() {
     
     const renderComponents = () => {
       const currentTime = videoTime.getCurrentTime();
+      const videoDuration = videoTime.getDuration();
       
       liveCheckRoot?.render(
         <div className="livecheck-container">
@@ -154,6 +161,7 @@ async function injectPopup() {
           <Timeline 
             events={DUMMY_EVENTS.timeline}
             currentTime={currentTime}
+            duration={videoDuration}
             onSeek={(time) => {
               const videoElement = document.querySelector<HTMLVideoElement>('video.html5-main-video');
               if (videoElement) videoElement.currentTime = time;
