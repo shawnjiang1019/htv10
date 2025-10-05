@@ -246,6 +246,36 @@ def getYouTubeSummary(video_id: str):
             "video_id": video_id,
         }
 
+@router.get("/youtube-transcript/{video_id}")
+def getYouTubeTranscript(video_id: str):
+    """Get YouTube video transcript with timestamps for real-time fact-checking"""
+    try:
+        print(f"\n=== Getting transcript with timestamps for video ID: {video_id} ===")
+        
+        # Get the transcript
+        transcript_obj = get_transcript(video_id=video_id)
+        
+        # Extract raw transcript data with timestamps
+        raw_data = transcript_obj.to_raw_data()
+        
+        # Format into list of sentences with timestamps
+        transcript_sentences = []
+        for snippet in raw_data:
+            transcript_sentences.append({
+                "text": snippet['text'].strip(),
+                "time": snippet['start']
+            })
+        
+        print(f"Transcript formatted successfully: {len(transcript_sentences)} sentences")
+        return transcript_sentences
+        
+    except Exception as e:
+        print(f"Error in getYouTubeTranscript: {str(e)}")
+        return {
+            "error": f"Error getting YouTube transcript: {str(e)}",
+            "video_id": video_id,
+        }
+
 @router.get("/test-gemini")
 def testGemini():
     """Test if Gemini API is working"""
