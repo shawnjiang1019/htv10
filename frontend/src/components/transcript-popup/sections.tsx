@@ -43,13 +43,10 @@ interface SummarySectionProps {
 
 export const SummarySection: React.FC<SummarySectionProps> = ({ 
   summary, 
-  biasLevel, 
-  biasColor 
 }) => (
   <div className="yt-transcript-section">
     <div className="yt-transcript-section-header">
       <h4>📋 Summary</h4>
-      <BiasIndicator level={biasLevel} color={biasColor} />
     </div>
     <div className="yt-transcript-summary">
       {summary}
