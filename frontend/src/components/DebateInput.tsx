@@ -1,5 +1,5 @@
 import { Input } from './ui/input'
-import { Button } from "@/components/ui/button"
+import { Button } from "./ui/button"
 
 interface DebateInputProps {
   prompt: string;
@@ -29,7 +29,7 @@ export const DebateInput = ({
   return (
     <div className="sticky top-0 z-50 bg-white p-4 border-b border-gray-200 shadow-sm w-full m-0">
       <p className="mb-4 mt-0">
-        Enter in a topic on your mind, our AI agents will use your scanned articles and videos to give you nothing but the facts.
+        Enter in a topic on your mind, our AI agents will use your scanned articles and videos to give you multiple perspectives on the topic.
       </p>
       
       <div className="flex w-full max-w-sm items-center gap-2">
@@ -65,20 +65,20 @@ export const DebateInput = ({
       {loading && (
         <div className="mt-2 text-blue-600 text-sm flex items-center gap-2">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-          🤖 AI agents are debating "{prompt}"... 
+          AI agents are conversing "{prompt}"... 
           {isConnected ? "(Live stream)" : "(Processing)"}
         </div>
       )}
       
       {debateCompleted && (
         <div className="mt-2 text-green-600 text-sm">
-          ✅ Debate completed! {messagesCount} exchanges generated.
+          Debate completed! {messagesCount} exchanges generated.
         </div>
       )}
       
       {error && (
         <div className="mt-2 text-red-600 text-sm">
-          ❌ Error: {error}
+          Error: {error}
         </div>
       )}
     </div>

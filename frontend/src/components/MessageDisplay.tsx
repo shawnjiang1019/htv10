@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { Badge } from "./ui/badge"
 
 interface DebateMessage {
   speaker: 'pro' | 'con';
@@ -39,7 +39,7 @@ export const MessageDisplay = ({
               <Badge variant="outline">{messages.length} exchanges</Badge>
               {isConnected && loading && (
                 <Badge variant="secondary" className="text-xs">
-                  🔴 Live
+                  Live
                 </Badge>
               )}
             </div>
