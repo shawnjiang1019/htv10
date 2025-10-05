@@ -248,31 +248,42 @@ def getYouTubeSummary(video_id: str):
 
 @router.get("/youtube-transcript/{video_id}")
 def getYouTubeTranscript(video_id: str):
-    """Get YouTube video transcript with timestamps for real-time fact-checking"""
+    """Pass fact-checking prompt to Gemini and return response"""
     try:
-        print(f"\n=== Getting transcript with timestamps for video ID: {video_id} ===")
+        print(f"\n=== Processing YouTube video: {video_id} ===")
         
-        # Get the transcript
-        transcript_obj = get_transcript(video_id=video_id)
+        # Setup Gemini model
+        model = setup_gemini()
         
-        # Extract raw transcript data with timestamps
-        raw_data = transcript_obj.to_raw_data()
+        # The comprehensive fact-checking prompt
+        prompt = """You are an expert, meticulous, and neutral fact-checker and bias analyst. Your primary goal is to provide a comprehensive, multi-modal, and objective analysis of the provided YouTube video content.
+
+Extract Transcript & Metadata: Access the video at the provided link and extract the full transcript. Also extract the video title and channel name.
+Initial Assessment: Identify the main_topic and assess the channel_source_credibility as 'High', 'Medium', 'Low', or 'Unknown', based on its public reputation and track record on this topic.
+Statement-by-Statement Analysis: Select key factual claims and arguments to analyze. The number of analyzed statements must be equal to or greater than the video's total runtime in minutes. For each statement, use the following framework:
+start_timestamp: The moment the statement begins in the video (e.g., "0:45").
+sentence: The exact quote of the statement.
+factuality_classification: Classify as "correct," "mostly correct," "mostly incorrect," "incorrect," "misleading," or "subjective."
+context_omission: Identify if crucial context is missing and classify as "None," "Minor," or "Major."
+logical_fallacy: Identify any committed logical fallacy from the following list (or similar): Ad Hominem, Straw Man, Appeal to Emotion, False Dichotomy, Slippery Slope, Anecdotal Evidence. If none, state "None."
+emotional_tone: Rate the language as "Neutral," "Positive," "Negative," or "Sensationalist."
+reasoning_and_sources: Crucially, use a Chain-of-Thought process. Explain how the factuality classification was reached, citing counter-evidence or supporting information from verifiable, independent sources. Justify the logical fallacy and multimodal analysis if applicable.
+Final Bias Judgment: Use all the collected data (factuality, omissions, fallacies, tone, framing) to determine the overall total_bias_score on a scale of 0-10 (0 = completely neutral, 10 = extremely partisan/biased).
+Final Justification: Write a brief bias_justification_narrative to explain the score.
+Output: Provide the output ONLY in the JSON format detailed above. Do not output any additional text, explanation, or commentary outside of the requested JSON structure.
+
+Please analyze this YouTube video: https://www.youtube.com/watch?v=""" + video_id
         
-        # Format into list of sentences with timestamps
-        transcript_sentences = []
-        for snippet in raw_data:
-            transcript_sentences.append({
-                "text": snippet['text'].strip(),
-                "time": snippet['start']
-            })
+        # Generate response from Gemini
+        response = model.generate_content(prompt)
         
-        print(f"Transcript formatted successfully: {len(transcript_sentences)} sentences")
-        return transcript_sentences
+        print(f"Gemini response generated successfully")
+        return {"response": response.text}
         
     except Exception as e:
         print(f"Error in getYouTubeTranscript: {str(e)}")
         return {
-            "error": f"Error getting YouTube transcript: {str(e)}",
+            "error": f"Error processing YouTube video: {str(e)}",
             "video_id": video_id,
         }
 

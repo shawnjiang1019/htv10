@@ -2,10 +2,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import TranscriptPopup from './TranscriptPopup';
 import LiveCheck from './components/transcript-popup/LiveCheck';
 import Timeline from './components/transcript-popup/Timeline';
-import { TimelineNote } from './components/TimelineNote';
 import styles from './transcript-popup.css?inline';
 import componentStyles from './components/injection-styles.css?inline';
-import './components/TimelineNote.css';
 
 // Inject CSS into the page
 function injectStyles() {
@@ -144,9 +142,7 @@ async function injectPopup() {
   };
 
   // Setup LiveCheck rendering and interval management
-  const setupLiveCheck = () => {
-    let selectedNote: string | null = null;
-    
+  const setupLiveCheck = () => {    
     const renderComponents = () => {
       const currentTime = videoTime.getCurrentTime();
       const videoDuration = videoTime.getDuration();
@@ -157,7 +153,6 @@ async function injectPopup() {
             events={DUMMY_EVENTS.flash}
             currentTime={currentTime}
           />
-          <TimelineNote content={selectedNote} />
           <Timeline 
             events={DUMMY_EVENTS.timeline}
             currentTime={currentTime}
@@ -165,14 +160,6 @@ async function injectPopup() {
             onSeek={(time) => {
               const videoElement = document.querySelector<HTMLVideoElement>('video.html5-main-video');
               if (videoElement) videoElement.currentTime = time;
-            }}
-            onHover={(content) => {
-              selectedNote = content;
-              renderComponents();
-            }}
-            onHoverEnd={() => {
-              selectedNote = null;
-              renderComponents();
             }}
           />
         </div>

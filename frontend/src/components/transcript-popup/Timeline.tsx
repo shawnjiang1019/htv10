@@ -105,9 +105,6 @@ export default function Timeline({ events, currentTime, onSeek, duration = 1000,
                 onSeek(event.start);
               }}
             >
-              <div className="timeline-tooltip">
-                {formatTime(event.start)} - {event.content}
-              </div>
             </div>
           ))}
         </div>
