@@ -30,63 +30,63 @@ export const MessageDisplay = ({
   }
 
   return (
-    <div className="p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>AI Debate: {prompt}</span>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{messages.length} exchanges</Badge>
-              {isConnected && loading && (
-                <Badge variant="secondary" className="text-xs">
-                  Live
-                </Badge>
-              )}
+    <div className="debate-display-container">
+      <div className="debate-messages-card">
+        <div className="debate-messages-header">
+          <div className="debate-title">
+            <h3>🗣️ AI Debate: {prompt}</h3>
+          </div>
+          <div className="debate-stats">
+            <div className="debate-badge">
+              {messages.length} exchanges
             </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+            {isConnected && loading && (
+              <div className="live-badge">
+                Live
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="debate-messages-content">
           {messages.length === 0 && !loading && (
-            <div className="text-center text-gray-500 py-8">
+            <div className="empty-state">
               No messages yet. Click "Start Debate" to begin.
             </div>
           )}
           
           {messages.length > 0 && (
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="messages-container">
               {messages.map((message, index) => (
                 <div
                   key={index}
-                  className={`flex gap-3 ${
-                    message.speaker === 'pro' ? 'justify-end' : 'justify-start'
-                  } animate-in slide-in-from-bottom-2 duration-300`}
+                  className={`message-wrapper ${
+                    message.speaker === 'pro' ? 'message-pro' : 'message-con'
+                  }`}
                 >
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.speaker === 'pro'
-                        ? 'bg-green-100 text-green-900 border border-green-200'
-                        : 'bg-blue-100 text-blue-900 border border-blue-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge 
-                        variant={message.speaker === 'pro' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
+                  <div className={`message-bubble ${
+                    message.speaker === 'pro'
+                      ? 'message-bubble-pro'
+                      : 'message-bubble-con'
+                  }`}>
+                    <div className="message-header">
+                      <div className={`speaker-badge ${
+                        message.speaker === 'pro' ? 'speaker-pro' : 'speaker-con'
+                      }`}>
                         {message.speaker === 'pro' ? '✅ PRO' : '❌ CON'}
-                      </Badge>
+                      </div>
                       {message.round && (
-                        <span className="text-xs text-gray-500">
+                        <span className="round-indicator">
                           Round {message.round}
                         </span>
                       )}
                       {message.timestamp && (
-                        <span className="text-xs text-gray-400">
+                        <span className="timestamp">
                           {new Date(message.timestamp).toLocaleTimeString()}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm leading-relaxed">{message.message}</p>
+                    <p className="message-text">{message.message}</p>
                   </div>
                 </div>
               ))}
@@ -94,13 +94,13 @@ export const MessageDisplay = ({
           )}
           
           {loading && messages.length === 0 && (
-            <div className="text-center text-gray-500 py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300 mx-auto mb-4"></div>
+            <div className="loading-state">
+              <div className="loading-spinner-large"></div>
               Waiting for AI agents to start debating...
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
