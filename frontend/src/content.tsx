@@ -1,6 +1,11 @@
 import { createRoot, type Root } from 'react-dom/client';
 import TranscriptPopup from './TranscriptPopup';
+import LiveCheck from './components/transcript-popup/LiveCheck';
+import Timeline from './components/transcript-popup/Timeline';
+import { TimelineNote } from './components/TimelineNote';
 import styles from './transcript-popup.css?inline';
+import componentStyles from './components/injection-styles.css?inline';
+import './components/TimelineNote.css';
 
 // Inject CSS into the page
 function injectStyles() {
@@ -8,7 +13,7 @@ function injectStyles() {
   
   const styleEl = document.createElement('style');
   styleEl.id = 'yt-transcript-styles';
-  styleEl.textContent = styles;
+  styleEl.textContent = styles + '\n' + componentStyles;
   document.head.appendChild(styleEl);
 }
 
@@ -37,6 +42,32 @@ function waitForElement<T extends Element>(
 }
 
 let currentRoot: Root | null = null;
+let liveCheckRoot: Root | null = null;
+
+// Class to handle video time tracking
+class VideoTimeTracker {
+  private currentTime = 0;
+  private interval: number;
+
+  constructor() {
+    this.interval = setInterval(this.updateTime.bind(this), 1000);
+  }
+
+  private updateTime() {
+    const videoElement = document.querySelector<HTMLVideoElement>('video.html5-main-video');
+    if (videoElement) {
+      this.currentTime = videoElement.currentTime;
+    }
+  }
+
+  getCurrentTime() {
+    return this.currentTime;
+  }
+
+  cleanup() {
+    clearInterval(this.interval);
+  }
+}
 
 async function injectPopup() {
   if (window.location.hostname !== "www.youtube.com" || 
@@ -50,32 +81,140 @@ async function injectPopup() {
   const urlParams = new URLSearchParams(window.location.search);
   const videoId = urlParams.get("v") || "unknown";
 
-  // Clean up existing popup
+  // Clean up existing elements
   const existingContainer = document.getElementById("yt-transcript-container");
+  const existingLiveCheck = document.getElementById("yt-livecheck-container");
+  
   if (existingContainer) {
     currentRoot?.unmount();
     currentRoot = null;
     existingContainer.remove();
   }
+  if (existingLiveCheck) {
+    existingLiveCheck.remove();
+  }
 
   const container = document.createElement("div");
   container.id = "yt-transcript-container";
 
+  const liveCheckContainer = document.createElement("div");
+  liveCheckContainer.id = "yt-livecheck-container";
+  liveCheckContainer.className = "yt-livecheck-wrapper";
+
+  // Initialize video time tracking
+  const videoTime = new VideoTimeTracker();
+
+  const DUMMY_EVENTS = {
+    flash: [
+      {
+        id: "1",
+        timestamp: 5,
+        content: "🤖 Machine Learning is a subset of AI - this foundational concept is crucial for understanding the field",
+        type: "info" as const,
+        duration: 4,
+        category: "Key Concept"
+      }
+    ],
+    timeline: [
+      {
+        content: "Introduction to AI concepts",
+        start: 0,
+        end: 135
+      },
+      {
+        content: "Neural Networks Deep Dive",
+        start: 135,
+        end: 342
+      },
+      {
+        content: "Real-world Applications",
+        start: 342,
+        end: 510
+      },
+    ]
+  };
+
+  // Setup LiveCheck rendering and interval management
+  const setupLiveCheck = () => {
+    let selectedNote: string | null = null;
+    
+    const renderComponents = () => {
+      const currentTime = videoTime.getCurrentTime();
+      
+      liveCheckRoot?.render(
+        <div className="livecheck-container">
+          <LiveCheck
+            events={DUMMY_EVENTS.flash}
+            currentTime={currentTime}
+          />
+          <TimelineNote content={selectedNote} />
+          <Timeline 
+            events={DUMMY_EVENTS.timeline}
+            currentTime={currentTime}
+            onSeek={(time) => {
+              const videoElement = document.querySelector<HTMLVideoElement>('video.html5-main-video');
+              if (videoElement) videoElement.currentTime = time;
+            }}
+            onHover={(content) => {
+              selectedNote = content;
+              renderComponents();
+            }}
+            onHoverEnd={() => {
+              selectedNote = null;
+              renderComponents();
+            }}
+          />
+        </div>
+      );
+    };
+
+    // Initial render
+    renderComponents();
+    
+    // Update every second
+    return setInterval(renderComponents, 1000);
+  };
+
   const handleClose = () => {
+    // Unmount components
     currentRoot?.unmount();
+    liveCheckRoot?.unmount();
     currentRoot = null;
+    liveCheckRoot = null;
+
+    // Remove containers
     container.remove();
+    liveCheckContainer.remove();
+
+    // Cleanup video time tracking
+    videoTime.cleanup();
   };
 
   try {
     const secondary = await waitForElement<HTMLElement>("#secondary");
     secondary.prepend(container);
+    secondary.prepend(liveCheckContainer);
   } catch {
     document.body.appendChild(container);
+    document.body.appendChild(liveCheckContainer);
   }
 
   currentRoot = createRoot(container);
-  currentRoot.render(<TranscriptPopup videoId={videoId} onClose={handleClose} />);
+  liveCheckRoot = createRoot(liveCheckContainer);
+
+  // Set up LiveCheck with interval
+  const updateInterval = setupLiveCheck();
+  
+  // Render main component
+  currentRoot.render(
+    <TranscriptPopup 
+      videoId={videoId} 
+      onClose={() => {
+        clearInterval(updateInterval);
+        handleClose();
+      }} 
+    />
+  );
 }
 
 injectPopup();

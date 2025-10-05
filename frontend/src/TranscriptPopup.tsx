@@ -9,7 +9,6 @@ import {
   AlternateLinksSection,
   PopupFooter,
 } from './components/transcript-popup/sections';
-import Timeline from './components/transcript-popup/Timeline';
 
 interface TranscriptPopupProps {
   videoId: string;
@@ -59,43 +58,12 @@ const DUMMY_DATA = {
   confidence: 0.87
 };
 
-const DUMMY_TIMELINE_EVENTS=  [
-  {
-    content: "Introduction to AI and machine learning concepts",
-    start: 0,
-    end: 135
-  },
-  {
-    content: "Deep dive into neural network architectures",
-    start: 135,
-    end: 342
-  },
-  {
-    content: "Real-world applications in healthcare and finance",
-    start: 342,
-    end: 510
-  },
-  {
-    content: "Discussing ethical implications and bias in AI",
-    start: 510,
-    end: 665
-  },
-  {
-    content: "Future trends and predictions for AI development",
-    start: 665,
-    end: 800
-  },
-  {
-    content: "Q&A session and concluding remarks",
-    start: 800,
-    end: 920
-  }
-];
+
 
 export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClose }) => {
   const [data, setData] = useState<CombinedData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [useDummyData, setUseDummyData] = useState(false);
+  // Video time is now handled in content.tsx
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,8 +72,7 @@ export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClo
         setData(result);
         setLoading(false);
       } catch (error) {
-        console.error('Failed to load data, using dummy data:', error);
-        setUseDummyData(true);
+        console.error('Failed to load data:', error);
         setLoading(false);
       }
     };
@@ -124,9 +91,6 @@ export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClo
     );
   }
 
-  useDummyData
-  DUMMY_TIMELINE_EVENTS
-
   const biasInfo = getBiasLevel(data?.bias_analysis?.bias_score ?? 0);
 
   return (
@@ -134,9 +98,6 @@ export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClo
       <PopupHeader onClose={onClose} />
       
       <div className="yt-transcript-content">
-
-        
-
         <SummarySection
           summary={data?.summary || 'No summary available'}
           biasLevel={biasInfo.level}
@@ -152,11 +113,6 @@ export const TranscriptPopup: React.FC<TranscriptPopupProps> = ({ videoId, onClo
           links={DUMMY_DATA.alternateLinks}
         />
 
-        {/* <Timeline 
-          events={DUMMY_TIMELINE_EVENTS}
-          currentTime={250}
-          onSeek={() => {alert(1)}}
-        /> */}
         <PopupFooter videoId={videoId} />
 
       </div>

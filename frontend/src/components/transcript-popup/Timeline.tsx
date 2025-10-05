@@ -12,9 +12,11 @@ interface TimelineProps {
   currentTime: number;
   onSeek: (seconds: number) => void;
   duration?: number;
+  onHover?: (content: string) => void;
+  onHoverEnd?: () => void;
 }
 
-export default function Timeline({ events, currentTime, onSeek, duration = 1000 }: TimelineProps) {
+export default function Timeline({ events, currentTime, onSeek, duration = 1000, onHover, onHoverEnd }: TimelineProps) {
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -33,11 +35,20 @@ export default function Timeline({ events, currentTime, onSeek, duration = 1000 
     if (isDragging) {
       onSeek(time);
     }
+
+    // Find event at current hover time and call onHover
+    const currentEvent = events.find(event => time >= event.start && time <= event.end);
+    if (currentEvent && onHover) {
+      onHover(currentEvent.content);
+    }
   };
 
   const handleMouseLeave = () => {
     setHoverTime(null);
     setIsDragging(false);
+    if (onHoverEnd) {
+      onHoverEnd();
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
